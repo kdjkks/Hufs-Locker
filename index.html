@@ -1,0 +1,2499 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hufs 사물함</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: login = one centered card; after login = sticky top bar, hero CTA card on the right, stacked status cards on the left. */
+:root {
+  --bg: #f6f8fb;
+  --card: #ffffff;
+  --field: #eff1f6;
+  --line: #e1e5ec;
+  --text: #1a2233;
+  --muted: #667085;
+  --brand: #0a3d91;
+  --brand-text: #0a3d91;
+  --on-brand: #ffffff;
+  --hero: #0a3d91;
+  --hero-btn-text: #0a3d91;
+  --soft: #7b8ba5;
+  --error: #b42318;
+  --error-bg: #fef3f2;
+  --note-bg: #eef3fb;
+  --bar-bg: #e6eaf1;
+  --used: #cdd2dd;
+  --used-text: #66708a;
+  --font: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1320;
+    --card: #161c2b;
+    --field: #1f2738;
+    --line: #2a3346;
+    --text: #e8ecf4;
+    --muted: #9aa5b8;
+    --brand: #3c74d6;
+    --brand-text: #8db4ff;
+    --hero: #1f4fa3;
+    --soft: #8c9bb5;
+    --error: #ffb4ab;
+    --error-bg: #3a1f23;
+    --note-bg: #1b2538;
+    --bar-bg: #263046;
+    --used: #3a445a;
+    --used-text: #97a2b8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1320;
+  --card: #161c2b;
+  --field: #1f2738;
+  --line: #2a3346;
+  --text: #e8ecf4;
+  --muted: #9aa5b8;
+  --brand: #3c74d6;
+  --brand-text: #8db4ff;
+  --hero: #1f4fa3;
+  --soft: #8c9bb5;
+  --error: #ffb4ab;
+  --error-bg: #3a1f23;
+  --note-bg: #1b2538;
+  --bar-bg: #263046;
+  --used: #3a445a;
+  --used-text: #97a2b8;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 3px solid var(--brand-text); outline-offset: 3px; }
+
+/* ---------- Brand ---------- */
+.wordmark { margin: 0; font-size: 2.1rem; line-height: 1.15; letter-spacing: -0.02em; }
+.wordmark .hufs { font-weight: 800; color: var(--brand-text); }
+.wordmark .locker { font-weight: 300; color: var(--soft); margin-left: 4px; }
+
+/* ---------- Login ---------- */
+.shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+.card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: 40px 36px 28px;
+  box-shadow: 0 8px 28px rgba(16, 32, 64, 0.06);
+}
+.brand { display: flex; flex-direction: column; gap: 6px; margin-bottom: 28px; }
+.tagline { margin: 0; color: var(--muted); font-size: 1rem; }
+.badge {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--note-bg);
+  color: var(--brand-text);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+.tab {
+  font: inherit; font-size: 0.95rem; font-weight: 500;
+  padding: 8px 18px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.tab[aria-selected="true"] { background: var(--brand); color: var(--on-brand); font-weight: 700; }
+.tab:not([aria-selected="true"]):hover { color: var(--text); }
+.form { display: flex; flex-direction: column; gap: 18px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { font-size: 0.9rem; color: var(--muted); padding-left: 4px; }
+.control { position: relative; }
+.control input {
+  width: 100%; height: 54px; padding: 0 22px;
+  border: 1.5px solid transparent; border-radius: 27px;
+  background: var(--field); color: var(--text); font: inherit; font-size: 1rem;
+}
+.control input.has-toggle { padding-right: 76px; }
+.control input::placeholder { color: var(--soft); opacity: 0.8; }
+.control input:focus { outline: none; background: var(--card); border-color: var(--brand); }
+.control input[aria-invalid="true"] { border-color: var(--error); }
+.control input:focus-visible { outline: none; }
+.toggle {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  height: 38px; padding: 0 14px; border: 0; border-radius: 19px;
+  background: transparent; color: var(--muted); font: inherit; font-size: 0.85rem; cursor: pointer;
+}
+.toggle:hover { color: var(--text); }
+.hint { margin: 0; padding-left: 4px; font-size: 0.82rem; color: var(--muted); }
+.error { margin: 0; padding: 10px 14px; border-radius: 14px; background: var(--error-bg); color: var(--error); font-size: 0.9rem; }
+.error:empty { display: none; }
+.btn {
+  height: 60px; border: 0; border-radius: 30px;
+  background: var(--brand); color: var(--on-brand);
+  font: inherit; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 4px;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.secondary { height: 52px; background: transparent; color: var(--text); border: 1.5px solid var(--line); font-size: 1rem; }
+.btn.secondary:hover { border-color: var(--brand); filter: none; }
+.demo { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+.demo h2 { margin: 0 0 4px; font-size: 0.95rem; font-weight: 700; }
+.demo p { margin: 0 0 12px; font-size: 0.85rem; color: var(--muted); }
+.demo code { padding: 1px 6px; border-radius: 6px; background: var(--field); font-family: var(--mono); font-size: 0.85em; color: var(--text); }
+.chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.chip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px;
+  background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.chip:hover { border-color: var(--brand); background: var(--note-bg); }
+.chip .who { font-size: 0.9rem; font-weight: 700; }
+.chip .state { font-size: 0.75rem; color: var(--muted); line-height: 1.3; }
+.footnote { margin: 24px 0 0; font-size: 0.78rem; color: var(--muted); text-align: center; }
+
+/* ---------- App: top bar ---------- */
+.topbar { position: sticky; top: 0; z-index: 5; background: var(--card); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 1180px; margin: 0 auto; padding: 0 24px; min-height: 76px; display: flex; align-items: center; gap: 28px; }
+.topbar .wordmark { font-size: 1.6rem; white-space: nowrap; }
+.menu { display: flex; gap: 4px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.menu::-webkit-scrollbar { display: none; }
+.menu button {
+  font: inherit; font-size: 1rem; font-weight: 500; white-space: nowrap;
+  padding: 8px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--text); cursor: pointer;
+}
+.menu button:hover { background: var(--field); }
+.menu button[aria-current="page"] { color: var(--brand-text); font-weight: 700; }
+.user { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.user-text { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+.mono-label { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+.user-name { font-weight: 700; font-size: 0.95rem; }
+.avatar {
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--note-bg); border: 1px solid var(--line); color: var(--brand-text); font-weight: 700;
+}
+.signout { font: inherit; font-size: 0.9rem; border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 8px 4px; }
+.signout:hover { color: var(--text); }
+
+/* ---------- App: dashboard ---------- */
+.dashboard {
+  max-width: 1180px; margin: 0 auto; padding: 36px 24px 24px;
+  display: grid; grid-template-columns: 380px 1fr; gap: 28px; align-items: start;
+}
+.col { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 26px; padding: 26px 28px; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.panel-head .mono-label { font-size: 0.78rem; letter-spacing: 0.16em; }
+.link { font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--brand-text); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+
+.big { margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+.row-between { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.side { font-size: 0.85rem; color: var(--muted); }
+.bar { height: 10px; border-radius: 999px; background: var(--bar-bg); overflow: hidden; margin: 16px 0 12px; }
+.bar > i { display: block; height: 100%; border-radius: 999px; background: var(--brand); }
+.small { margin: 0; font-size: 0.9rem; color: var(--muted); }
+.small + .small { margin-top: 6px; }
+.locker-no { margin: 0; font-family: var(--mono); font-size: 2.6rem; font-weight: 800; letter-spacing: 0.02em; line-height: 1.15; }
+.locker-meta { margin: 6px 0 14px; font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
+
+/* Hero */
+.hero { background: var(--hero); color: #fff; border: 0; border-radius: 28px; padding: 34px 36px; box-shadow: 0 14px 30px rgba(10, 61, 145, 0.22); }
+.hero h2 { margin: 0 0 12px; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { margin: 0; font-size: 1rem; opacity: 0.92; max-width: 46ch; }
+.hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.hero-chip { padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.16); font-size: 0.8rem; font-weight: 500; }
+.hero-note { margin-top: 10px !important; font-size: 0.8rem !important; opacity: 0.75 !important; }
+.hero-btn {
+  display: block; width: 100%; height: 70px; margin-top: 24px; border: 0; border-radius: 35px;
+  background: #fff; color: var(--hero-btn-text); font: inherit; font-size: 1.2rem; font-weight: 700; cursor: pointer;
+}
+.hero-btn:hover { filter: brightness(0.96); }
+.hero-btn[disabled] { opacity: 0.6; cursor: not-allowed; }
+.hero :focus-visible { outline-color: #fff; }
+
+/* Zone list */
+.zones { list-style: none; margin: 0; padding: 0; }
+.zone { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); }
+.zone:first-child { border-top: 0; padding-top: 4px; }
+.zone-letter { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--note-bg); color: var(--brand-text); font-family: var(--mono); font-weight: 800; font-size: 1.2rem; }
+.zone-name { font-weight: 700; }
+.zone-sub { font-size: 0.82rem; color: var(--muted); }
+.zone .bar { height: 6px; margin: 8px 0 0; }
+.pill { padding: 4px 12px; border-radius: 8px; background: var(--field); font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.06em; white-space: nowrap; }
+.sum { margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--line); font-size: 0.9rem; color: var(--muted); }
+.sum strong { color: var(--text); }
+
+.rules { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.rules li { display: grid; grid-template-columns: 24px 1fr; gap: 10px; font-size: 0.92rem; }
+.rules .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--note-bg); color: var(--brand-text); font-family: var(--mono); font-size: 0.75rem; font-weight: 700; }
+
+/* ---------- Locker status page ---------- */
+.zones-page { max-width: 1180px; margin: 0 auto; padding: 36px 24px 24px; }
+.page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+.page-head h1 { margin: 0 0 6px; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+.page-head h1:focus { outline: none; }
+.page-head p { margin: 0; color: var(--muted); max-width: 62ch; }
+.floors { display: flex; gap: 10px; }
+.floor {
+  height: 42px; min-width: 60px; padding: 0 20px; border-radius: 21px;
+  border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  font: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+}
+.floor:hover { color: var(--text); border-color: var(--brand); }
+.floor[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.my-locker { padding: 22px 28px; }
+.my-value { margin: 6px 0 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: var(--muted); }
+.my-value.has { color: var(--brand-text); }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 18px 0 20px; padding: 0 4px; font-size: 0.85rem; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.swatch { width: 16px; height: 16px; border-radius: 5px; border: 1px solid var(--line); }
+.swatch.free { background: var(--field); }
+.swatch.used { background: var(--used); border-color: transparent; }
+.swatch.mine { background: var(--brand); border-color: transparent; }
+.swatch.pend { background: repeating-linear-gradient(135deg, var(--field) 0 4px, var(--used) 4px 6px); border: 1px dashed var(--used-text); }
+.swatch.sel { background: var(--note-bg); border: 2px solid var(--brand); }
+.empty { padding: 56px 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 26px; }
+.grid-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.grid-head h2 { margin: 0; font-size: 1.05rem; }
+.grid-count { font-family: var(--mono); font-size: 0.82rem; color: var(--muted); }
+.grid {
+  display: grid; grid-template-rows: repeat(5, 62px); grid-auto-flow: column; grid-auto-columns: 62px; gap: 10px;
+  overflow-x: auto; padding-bottom: 14px; scrollbar-width: thin;
+}
+.scroll-hint { margin: 6px 0 0; font-size: 0.8rem; color: var(--muted); }
+.cell {
+  height: 62px; border: 2px solid transparent; border-radius: 12px;
+  background: var(--field); color: var(--text);
+  font-family: var(--mono); font-size: 0.75rem; font-weight: 800; cursor: default;
+}
+.cell { position: relative; }
+.cell.pick { cursor: pointer; }
+.cell.wished::after { content: "♥"; position: absolute; top: 3px; right: 6px; font-size: 0.7rem; color: #e0245e; }
+.cell.pick:hover { border-color: var(--brand); }
+.cell.used { background: var(--used); color: var(--used-text); }
+.cell.pend { background: repeating-linear-gradient(135deg, var(--field) 0 6px, var(--used) 6px 8px); color: var(--used-text); border: 2px dashed var(--used); }
+.cell.mine { background: var(--brand); color: var(--on-brand); }
+.cell.sel { background: var(--note-bg); border-color: var(--brand); color: var(--brand-text); }
+.action-bar {
+  position: sticky; bottom: 16px; margin-top: 20px; padding: 14px 16px 14px 26px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--brand); border-radius: 999px;
+  box-shadow: 0 10px 28px rgba(10, 61, 145, 0.18);
+}
+.action-bar strong { font-size: 1rem; }
+.ab-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.ab-note { font-size: 0.8rem; color: var(--muted); }
+.ab-note:empty { display: none; }
+.ab-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.action-bar .btn { height: 46px; padding: 0 26px; margin: 0; font-size: 1rem; }
+
+/* ---------- Apply page ---------- */
+.steps { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 22px; padding: 0; }
+.steps li {
+  display: flex; align-items: center; gap: 8px; padding: 6px 16px 6px 6px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--card);
+  font-size: 0.9rem; color: var(--muted);
+}
+.steps .n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--field); font-family: var(--mono); font-size: 0.78rem; font-weight: 700; }
+.steps li[aria-current="step"] { border-color: var(--brand); color: var(--brand-text); font-weight: 700; }
+.steps li[aria-current="step"] .n { background: var(--brand); color: var(--on-brand); }
+.free-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
+
+/* ---------- Plan page ---------- */
+.steps li.done { color: var(--text); }
+.steps li.done .n { background: var(--note-bg); color: var(--brand-text); }
+.back { height: 44px !important; padding: 0 20px; font-size: 0.9rem !important; margin: 0 !important; }
+.plans { border: 0; margin: 0 0 20px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; min-width: 0; }
+.plan {
+  position: relative; display: flex; flex-direction: column; gap: 4px; padding: 26px 28px;
+  border: 2px solid var(--line); border-radius: 26px; background: var(--card); cursor: pointer;
+}
+.plan:hover { border-color: var(--brand); }
+.plan:focus-within { outline: 3px solid var(--brand-text); outline-offset: 3px; }
+.plan input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.plan.on { border-color: var(--brand); background: var(--note-bg); }
+.plan-name { font-size: 1.05rem; font-weight: 700; }
+.plan-price { font-size: 2.3rem; font-weight: 800; letter-spacing: -0.02em; color: var(--brand-text); line-height: 1.2; }
+.plan-price small { font-size: 1rem; font-weight: 500; color: var(--muted); }
+.plan-period { font-family: var(--mono); font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+.plan ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 0.9rem; }
+.plan-check { position: absolute; top: 22px; right: 24px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 0.8rem; font-weight: 800; color: transparent; }
+.plan.on .plan-check { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.deposit-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.deposit-amount { margin: 4px 0 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+.deposit p.small { margin-top: 10px; max-width: 60ch; }
+.deposit .btn { height: 48px; padding: 0 24px; margin: 0; font-size: 0.95rem; }
+.bill { margin-top: 20px; padding: 22px 24px; border: 1.5px dashed var(--brand); border-radius: 20px; }
+.bill-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.bill-head h3 { margin: 0; font-size: 1.05rem; }
+.bill-badge { padding: 3px 10px; border-radius: 999px; background: var(--error-bg); color: var(--error); font-size: 0.75rem; font-weight: 700; }
+.bill dl { margin: 0; }
+.bill-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 0; border-top: 1px solid var(--line); }
+.bill-row dt { color: var(--muted); font-size: 0.9rem; }
+.bill-row dd { margin: 0; font-weight: 700; }
+.bill-row .acct { font-family: var(--mono); font-size: 1.25rem; font-weight: 800; letter-spacing: 0.04em; user-select: all; }
+.acct-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.copy { font: inherit; font-size: 0.8rem; font-weight: 700; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--brand-text); cursor: pointer; }
+.copy:hover { border-color: var(--brand); }
+.copied { font-size: 0.8rem; color: var(--muted); }
+.bill-note { margin: 12px 0 0; font-size: 0.82rem; color: var(--muted); }
+
+/* ---------- Summary / done ---------- */
+.stack { display: flex; flex-direction: column; gap: 20px; }
+.summary { margin-top: 20px; }
+.summary .rows { margin: 12px 0 0; }
+.summary .rows .total dd, .pay .rows .total dd { font-size: 1.25rem; font-weight: 800; color: var(--brand-text); }
+.refund { margin: 14px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--note-bg); font-size: 0.85rem; color: var(--muted); }
+.refund strong { color: var(--text); }
+.agree { display: flex; align-items: flex-start; gap: 12px; margin-top: 16px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; cursor: pointer; font-size: 0.92rem; }
+.agree input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--brand); flex: none; cursor: pointer; }
+.agree:focus-within { outline: 3px solid var(--brand-text); outline-offset: 3px; }
+.summary .error { margin-top: 12px; }
+.done-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.done-actions .btn { height: 52px; padding: 0 28px; margin: 0; font-size: 1rem; }
+.pay .rows { margin: 12px 0 0; }
+.tips { margin: 12px 0 0; padding-left: 20px; font-size: 0.92rem; display: flex; flex-direction: column; gap: 6px; }
+
+/* ---------- My locker page ---------- */
+.status-badge { padding: 4px 12px; border-radius: 999px; background: var(--note-bg); color: var(--brand-text); font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+.mine-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 18px 0 0; padding-top: 18px; border-top: 1px solid var(--line); }
+.facts dt { font-size: 0.8rem; color: var(--muted); }
+.facts dd { margin: 2px 0 0; font-weight: 700; }
+.refbar { margin-top: 14px; }
+.refbar-track { position: relative; height: 14px; border-radius: 999px; background: var(--bar-bg); overflow: hidden; }
+.refbar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--brand); }
+.refbar-cut { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--card); }
+.refbar-labels { display: flex; margin-top: 8px; font-size: 0.74rem; color: var(--muted); }
+.refbar-labels span { padding-left: 2px; white-space: nowrap; }
+.refbar-labels span:nth-child(1) { flex: 0 0 33.333%; }
+.refbar-labels span:nth-child(2) { flex: 0 0 16.667%; }
+.refbar-labels span:nth-child(3) { flex: 1; }
+.refbar-labels .now { color: var(--brand-text); font-weight: 700; }
+.mine-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.mine-actions .btn { height: 52px; padding: 0 28px; margin: 0; font-size: 1rem; }
+.accent-box { border-color: var(--brand); }
+.accent-box h2 { margin: 0 0 6px; font-size: 1.2rem; }
+.accent-box .btn { height: 52px; padding: 0 28px; margin: 16px 0 0; font-size: 1rem; }
+.accent-box .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+/* ---------- Extend page ---------- */
+.checks { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.checks li { display: flex; align-items: center; gap: 12px; font-size: 0.95rem; }
+.check-ic { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: none; font-size: 0.8rem; font-weight: 800; background: var(--brand); color: var(--on-brand); }
+.checks li.no { color: var(--error); }
+.checks li.no .check-ic { background: var(--error-bg); color: var(--error); }
+.compare { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.95rem; }
+.compare th, .compare td { text-align: left; padding: 12px 8px; border-top: 1px solid var(--line); }
+.compare thead th { border-top: 0; font-size: 0.8rem; font-weight: 500; color: var(--muted); }
+.compare tbody th { font-weight: 500; color: var(--muted); }
+.compare td.after { font-weight: 800; color: var(--brand-text); }
+.ex-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.ex-actions .btn { height: 52px; padding: 0 28px; margin: 0; font-size: 1rem; }
+
+/* ---------- Return page ---------- */
+.control select {
+  width: 100%; height: 54px; padding: 0 22px; border: 1.5px solid transparent; border-radius: 27px;
+  background: var(--field); color: var(--text); font: inherit; font-size: 1rem; appearance: auto;
+}
+.control select:focus { outline: none; background: var(--card); border-color: var(--brand); }
+.control select[aria-invalid="true"] { border-color: var(--error); }
+.bill-row.total dd { color: var(--brand-text); font-size: 1.15rem; }
+.warn { margin: 14px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--error-bg); color: var(--error); font-size: 0.88rem; font-weight: 500; }
+
+/* ---------- Demo control ---------- */
+.clock-demo { position: fixed; left: 14px; bottom: 14px; z-index: 40; max-width: min(340px, calc(100vw - 28px)); background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 8px 28px rgba(20, 30, 60, 0.18); font-size: 0.85rem; }
+.clock-demo summary { cursor: pointer; padding: 10px 16px; font-weight: 700; list-style: none; }
+.clock-demo summary::-webkit-details-marker { display: none; }
+.clock-demo summary:focus-visible { outline: 3px solid var(--brand-text); outline-offset: 2px; border-radius: 18px; }
+.clock-demo .cd-body { padding: 0 16px 16px; }
+.clock-demo p { margin: 0 0 10px; color: var(--muted); }
+.cd-btns { display: flex; flex-direction: column; gap: 8px; }
+.cd-btns button { font: inherit; font-weight: 700; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--field); color: var(--text); cursor: pointer; text-align: left; }
+.cd-btns button:hover { border-color: var(--brand); }
+.clock-demo #cd-msg:not(:empty) { margin: 0; padding: 12px 14px; border-radius: 18px 18px 0 0; background: var(--note-bg); color: var(--text); cursor: pointer; border-bottom: 1px solid var(--line); }
+
+/* ---------- Rules / card news ---------- */
+.cn-wrap { display: grid; grid-template-columns: minmax(0, 480px) minmax(0, 1fr); gap: 28px; align-items: start; }
+.cn-viewer { position: relative; }
+.cn-frame { border-radius: 20px; overflow: hidden; background: var(--field); border: 1px solid var(--line); aspect-ratio: 4 / 5; }
+.cn-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cn-frame:focus-visible { outline: 3px solid var(--brand-text); outline-offset: 3px; }
+.cn-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.cn-nav .btn { height: 46px; padding: 0 22px; margin: 0; font-size: 0.95rem; }
+.cn-count { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
+.cn-thumbs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 14px; }
+.cn-thumbs button { padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: var(--field); cursor: pointer; aspect-ratio: 4 / 5; }
+.cn-thumbs button img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cn-thumbs button[aria-current="true"] { border-color: var(--brand); }
+.cn-thumbs button:focus-visible { outline: 3px solid var(--brand-text); outline-offset: 2px; }
+.cn-text h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.cn-text ul { margin: 10px 0 0; padding-left: 1.2em; line-height: 1.7; }
+.cn-text li { margin: 2px 0; }
+.cn-notice { margin: 0 0 18px; }
+@media (max-width: 860px) { .cn-wrap { grid-template-columns: 1fr; } }
+
+/* ---------- Wish list ---------- */
+.menu .badge { display: inline-block; min-width: 18px; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--brand); color: var(--on-brand); font-size: 0.7rem; font-weight: 800; text-align: center; }
+.menu .badge:empty { display: none; }
+.wish-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.wish-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 18px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); }
+.wish-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 260px; }
+.wish-no { font-size: 1.25rem; font-weight: 800; }
+.wish-status { font-size: 0.88rem; color: var(--muted); }
+.wish-pill { display: inline-block; margin-right: 8px; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; background: var(--note-bg); color: var(--brand-text); }
+.wish-pill.ok { background: var(--brand); color: var(--on-brand); }
+.wish-pill.bad { background: var(--error-bg); color: var(--error); }
+.wish-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.wish-btns .btn { height: 44px; padding: 0 20px; margin: 0; font-size: 0.92rem; }
+
+/* ---------- Report page ---------- */
+.report-card { background: var(--brand); color: var(--on-brand); border-radius: 28px; padding: 28px; box-shadow: 0 10px 28px rgba(10, 61, 145, 0.25); max-width: 640px; }
+.report-card .rc-label { display: block; margin: 0 0 8px; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; opacity: 0.85; }
+.report-card .rc-field { margin-bottom: 20px; }
+.report-card .rc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.report-card select, .report-card textarea { width: 100%; font: inherit; font-size: 1rem; color: var(--on-brand); background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 22px; padding: 14px 18px; }
+.report-card select { height: 54px; font-weight: 700; }
+.report-card select option { color: #1b2233; background: #fff; }
+.report-card textarea { min-height: 110px; resize: vertical; border-radius: 20px; }
+.report-card textarea::placeholder { color: var(--on-brand); opacity: 0.6; }
+.report-card select:disabled { opacity: 0.55; }
+.report-card :focus-visible { outline: 3px solid var(--on-brand); outline-offset: 2px; }
+.report-card .rc-count { margin: 6px 4px 0; font-size: 0.78rem; opacity: 0.8; text-align: right; }
+.rc-drop { position: relative; display: grid; place-items: center; gap: 6px; min-height: 200px; padding: 20px; text-align: center; border: 1.5px dashed rgba(255, 255, 255, 0.55); border-radius: 22px; background: rgba(255, 255, 255, 0.06); cursor: pointer; }
+.rc-drop:focus-within { outline: 3px solid var(--on-brand); outline-offset: 2px; }
+.rc-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.rc-drop strong { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.08em; }
+.rc-drop span { font-size: 0.82rem; opacity: 0.8; }
+.rc-preview { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 18px; background: rgba(255, 255, 255, 0.14); }
+.rc-preview img { width: 72px; height: 72px; object-fit: cover; border-radius: 12px; flex: none; background: rgba(255, 255, 255, 0.2); }
+.rc-preview .rc-file { min-width: 0; flex: 1; font-size: 0.9rem; overflow-wrap: anywhere; }
+.rc-preview button { font: inherit; font-size: 0.85rem; font-weight: 700; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.6); background: transparent; color: var(--on-brand); cursor: pointer; }
+.report-card .rc-submit { width: 100%; height: 56px; border: 0; border-radius: 28px; background: var(--on-brand); color: var(--brand); font: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; }
+.report-card .rc-submit:hover { filter: brightness(0.95); }
+.report-card .rc-warn { margin: 0 0 20px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.14); font-size: 0.84rem; }
+.report-card .error { margin: 0 0 14px; }
+.rp-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rp-item { padding: 14px 16px; border: 1px solid var(--line); border-radius: 16px; }
+.rp-item .rp-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; }
+.rp-item .rp-id { font-family: var(--mono); font-size: 0.85rem; font-weight: 800; }
+.rp-item p { margin: 8px 0 0; font-size: 0.88rem; color: var(--muted); }
+
+.placeholder { max-width: 1180px; margin: 0 auto; padding: 36px 24px; }
+.placeholder .panel { max-width: 560px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.placeholder h2 { margin: 0; font-size: 1.5rem; }
+.placeholder h2:focus { outline: none; }
+.placeholder p { margin: 0; color: var(--muted); }
+.placeholder .btn { height: 48px; padding: 0 24px; font-size: 1rem; margin-top: 4px; }
+
+.app-foot { max-width: 1180px; margin: 0 auto; padding: 8px 24px 40px; font-size: 0.8rem; color: var(--muted); }
+
+@media (max-width: 900px) {
+  .dashboard { grid-template-columns: 1fr; gap: 24px; padding: 20px 16px 16px; }
+  .col { display: contents; }
+  .a-hero { order: 1; } .a-status { order: 2; } .a-locker { order: 3; } .a-feed { order: 4; } .a-rules { order: 5; }
+  .topbar-inner { flex-wrap: wrap; gap: 4px 12px; padding: 10px 16px; }
+  .menu { order: 3; flex-basis: 100%; }
+  .user-text { display: none; }
+  .hero { padding: 26px 22px; }
+  .hero h2 { font-size: 1.7rem; }
+  .panel { padding: 22px 22px; }
+  .placeholder { padding: 20px 16px; }
+  .zones-page { padding: 20px 16px 16px; }
+  .free-grid { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; }
+  .plans { grid-template-columns: 1fr; }
+  .facts { grid-template-columns: 1fr; gap: 12px; }
+  .page-head h1 { font-size: 1.6rem; }
+}
+@media (max-width: 440px) {
+  .card { padding: 30px 22px 22px; border-radius: 24px; }
+  .wordmark { font-size: 1.8rem; }
+  .topbar .wordmark { font-size: 1.5rem; }
+  .chips { grid-template-columns: repeat(2, 1fr); }
+  .floors { width: 100%; }
+  .floor { flex: 1; min-width: 0; padding: 0; }
+  .grid { grid-template-rows: repeat(5, 52px); grid-auto-columns: 52px; gap: 8px; }
+  .cell { height: 52px; }
+  .action-bar { border-radius: 24px; padding: 14px 16px; }
+  .zone { grid-template-columns: 40px 1fr; }
+  .zone .pill { grid-column: 2; justify-self: start; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .chip, .control input, .hero-btn, .menu button { transition: background-color 0.15s, border-color 0.15s, filter 0.15s; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ Login ============ -->
+<main class="shell" id="auth-shell">
+  <section class="card" aria-labelledby="app-name">
+    <header class="brand">
+      <h1 class="wordmark" id="app-name"><span class="hufs">HUFS</span><span class="locker">사물함</span></h1>
+      <p class="tagline">도서관 사물함 신청·관리</p>
+      <span class="badge">프로토타입 · 가상 계정 전용</span>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="로그인 방법">
+      <button class="tab" role="tab" id="tab-login" aria-selected="true" aria-controls="login-form" type="button">Login</button>
+      <button class="tab" role="tab" id="tab-signup" aria-selected="false" aria-controls="signup-form" tabindex="-1" type="button">Sign Up</button>
+    </div>
+
+    <form class="form" id="login-form" role="tabpanel" aria-labelledby="tab-login" novalidate>
+      <div class="field">
+        <label for="login-email">이메일</label>
+        <div class="control"><input id="login-email" name="email" type="email" autocomplete="username" inputmode="email" placeholder="student-a@demo.test"></div>
+      </div>
+      <div class="field">
+        <label for="login-password">비밀번호</label>
+        <div class="control">
+          <input id="login-password" name="password" type="password" autocomplete="current-password" class="has-toggle">
+          <button class="toggle" type="button" data-target="login-password" aria-label="비밀번호 표시">표시</button>
+        </div>
+      </div>
+      <p class="error" id="login-error" role="alert"></p>
+      <button class="btn" type="submit">로그인</button>
+    </form>
+
+    <form class="form" id="signup-form" role="tabpanel" aria-labelledby="tab-signup" novalidate hidden>
+      <div class="field">
+        <label for="signup-name">이름</label>
+        <div class="control"><input id="signup-name" name="name" type="text" autocomplete="off" placeholder="체험용 이름"></div>
+      </div>
+      <div class="field">
+        <label for="signup-email">이메일</label>
+        <div class="control"><input id="signup-email" name="email" type="email" autocomplete="off" inputmode="email" placeholder="me@demo.test"></div>
+      </div>
+      <div class="field">
+        <label for="signup-password">비밀번호</label>
+        <div class="control">
+          <input id="signup-password" name="password" type="password" autocomplete="new-password" class="has-toggle">
+          <button class="toggle" type="button" data-target="signup-password" aria-label="비밀번호 표시">표시</button>
+        </div>
+        <p class="hint">6자 이상. 실제로 쓰는 비밀번호는 넣지 마세요.</p>
+      </div>
+      <p class="error" id="signup-error" role="alert"></p>
+      <button class="btn" type="submit">가상 계정 만들기</button>
+    </form>
+
+    <section class="demo" aria-labelledby="demo-title">
+      <h2 id="demo-title">체험용 가상 계정</h2>
+      <p>누르면 이메일과 비밀번호가 채워집니다. 공통 비밀번호는 <code>demo1234</code>입니다.</p>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <p class="footnote">제안 중인 운영 방식을 체험하는 수업 프로젝트입니다. 실제 학교 서비스가 아니며, 실제 계정 정보를 입력하지 마세요.</p>
+  </section>
+</main>
+
+<!-- ============ After login ============ -->
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="wordmark" aria-label="Hufs 사물함"><span class="hufs">HUFS</span><span class="locker">사물함</span></div>
+      <nav class="menu" id="menu" aria-label="주 메뉴">
+        <button type="button" data-view="home">홈</button>
+        <button type="button" data-view="zones">사물함 현황</button>
+        <button type="button" data-view="apply">신청</button>
+        <button type="button" data-view="wish">찜 목록<span class="badge" id="wish-badge"></span></button>
+        <button type="button" data-view="mine">내 사물함</button>
+        <button type="button" data-view="report">신고</button>
+        <button type="button" data-view="rules">이용규칙·안내</button>
+      </nav>
+      <div class="user">
+        <div class="user-text">
+          <span class="mono-label">Demo account</span>
+          <span class="user-name" id="user-name"></span>
+        </div>
+        <div class="avatar" id="avatar" aria-hidden="true"></div>
+        <button class="signout" id="logout" type="button">로그아웃</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="home-view">
+    <h1 class="sr-only" id="home-title" tabindex="-1">홈</h1>
+    <div class="dashboard">
+      <div class="col">
+<section class="panel a-status" aria-labelledby="st-label">
+        <div class="panel-head"><span class="mono-label" id="st-label">MY STATUS / 이용 현황</span></div>
+        <div class="row-between">
+          <p class="big" id="st-main"></p>
+          <span class="side" id="st-side"></span>
+        </div>
+        <div class="bar" id="st-bar" role="progressbar" aria-label="이용기간 경과" aria-valuemin="0" aria-valuemax="100"><i id="st-fill"></i></div>
+        <p class="small" id="st-text"></p>
+        <p class="small" id="st-sub"></p>
+      </section>
+
+<section class="panel a-locker" aria-labelledby="lk-label">
+        <div class="panel-head">
+          <span class="mono-label" id="lk-label">MY LOCKER / 내 사물함</span>
+          <button class="link" type="button" data-go="mine">상세</button>
+        </div>
+        <p class="locker-no" id="lk-no"></p>
+        <p class="locker-meta" id="lk-period"></p>
+        <p class="small" id="lk-note"></p>
+      </section>
+
+<section class="panel a-rules" aria-labelledby="ru-label">
+        <div class="panel-head">
+          <span class="mono-label" id="ru-label">RULES / 핵심 규칙</span>
+          <button class="link" type="button" data-go="rules">전체 보기</button>
+        </div>
+        <ol class="rules">
+          <li><span class="n">1</span><span>이용권은 3개월(1회 연장 가능) 또는 6개월(연장 불가) 중 고릅니다.</span></li>
+          <li><span class="n">2</span><span>연속 이용은 최대 6개월입니다. 이후에는 신규 이용자와 같은 조건으로 다시 신청합니다.</span></li>
+          <li><span class="n">3</span><span>보증금 50,000원은 이용료와 따로 내며, 정상 반납하면 전액 돌려받습니다.</span></li>
+          <li><span class="n">4</span><span>반납된 사물함은 매월 1일·15일 오전 10시에 한꺼번에 다시 열려 선착순으로 신청합니다. (제안)</span></li>
+        </ol>
+      </section>
+      </div>
+      <div class="col">
+<section class="panel hero a-hero" aria-labelledby="hero-title">
+        <div class="hero-chips" id="hero-chips"></div>
+        <h2 id="hero-title">매월 1일·15일 오전 10시 선착순 신청</h2>
+        <p id="hero-desc"></p>
+        <p class="hero-note" id="hero-note"></p>
+        <button class="hero-btn" id="hero-btn" type="button"></button>
+      </section>
+
+<section class="panel a-feed" aria-labelledby="zn-label">
+        <div class="panel-head">
+          <span class="mono-label" id="zn-label">LOCKER STATUS / 사물함 현황</span>
+          <button class="link" type="button" data-go="zones">배치도 보기</button>
+        </div>
+        <ul class="zones" id="zones"></ul>
+        <p class="sum" id="zones-sum"></p>
+      </section>
+      </div>
+    </div>
+  </main>
+
+  <main class="zones-page" id="zones-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="zv-title" tabindex="-1">학술정보관 사물함 현황</h1>
+        <p id="zv-sub"></p>
+      </div>
+      <div class="floors" id="floors" role="group" aria-label="층 선택"></div>
+    </div>
+    <section class="panel my-locker" aria-labelledby="zv-my-label">
+      <span class="mono-label" id="zv-my-label">MY LOCKER / 내 사물함</span>
+      <p class="my-value" id="zv-my"></p>
+    </section>
+    <ul class="legend" aria-label="범례">
+      <li><span class="swatch free"></span>빈 사물함</li>
+      <li><span class="swatch used"></span>사용 중</li>
+      <li><span class="swatch pend"></span>반납 대기</li>
+      <li><span class="swatch mine"></span>내 사물함</li>
+      <li><span class="swatch sel"></span>선택한 사물함</li>
+    </ul>
+    <div class="empty" id="zv-empty">층을 선택하면 사물함 배치가 표시됩니다.</div>
+    <section class="panel" id="zv-grid-panel" aria-labelledby="zv-grid-title" hidden>
+      <div class="grid-head">
+        <h2 id="zv-grid-title"></h2>
+        <span class="grid-count" id="zv-grid-count"></span>
+      </div>
+      <div class="grid" id="zv-grid"></div>
+      <p class="scroll-hint">세로 5칸 기준으로 번호가 위에서 아래로 이어집니다. 옆으로 넘기면 나머지 사물함이 보입니다.</p>
+    </section>
+    <div class="action-bar" id="zv-action" hidden>
+      <div class="ab-text"><strong id="zv-action-text"></strong><span class="ab-note" id="zv-note" role="status"></span></div>
+      <div class="ab-btns"><button class="btn secondary" id="zv-wish-btn" type="button" aria-pressed="false">♡ 찜하기</button><button class="btn" id="zv-action-btn" type="button">신청하러 가기 →</button></div>
+    </div>
+  </main>
+
+  <main class="zones-page" id="apply-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="ap-title" tabindex="-1">사물함 신청</h1>
+        <p id="ap-sub"></p>
+      </div>
+      <div class="floors" id="ap-floors" role="group" aria-label="층 선택"></div>
+    </div>
+    <ol class="steps" aria-label="신청 단계">
+      <li aria-current="step"><span class="n">1</span>사물함 선택</li>
+      <li><span class="n">2</span>이용권 선택·신청</li>
+    </ol>
+    <div class="empty" id="ap-empty">층을 선택하면 그 층의 빈 사물함만 모아서 보여 드립니다.</div>
+    <section class="panel" id="ap-panel" aria-labelledby="ap-grid-title" hidden>
+      <div class="grid-head">
+        <h2 id="ap-grid-title"></h2>
+        <span class="grid-count" id="ap-grid-count"></span>
+      </div>
+      <div class="free-grid" id="ap-grid"></div>
+    </section>
+    <div class="action-bar" id="ap-action" hidden>
+      <div class="ab-text"><strong id="ap-action-text"></strong><span class="ab-note" id="ap-note" role="status"></span></div>
+      <div class="ab-btns"><button class="btn secondary" id="ap-wish-btn" type="button" aria-pressed="false">♡ 찜하기</button><button class="btn" id="ap-action-btn" type="button">다음: 이용권 선택 →</button></div>
+    </div>
+  </main>
+
+  <main class="zones-page" id="plan-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="pl-title" tabindex="-1">이용권 선택</h1>
+        <p id="pl-sub"></p>
+      </div>
+      <button class="btn secondary back" id="pl-back" type="button">← 사물함 다시 선택</button>
+    </div>
+    <ol class="steps" aria-label="신청 단계">
+      <li class="done"><span class="n">✓</span>사물함 선택</li>
+      <li aria-current="step"><span class="n">2</span>이용권 선택·신청</li>
+    </ol>
+    <fieldset class="plans" id="pl-plans">
+      <legend class="sr-only">이용권 종류</legend>
+      <label class="plan" data-plan="3">
+        <input type="radio" name="plan" value="3">
+        <span class="plan-check" aria-hidden="true">✓</span>
+        <span class="plan-name">3개월권</span>
+        <span class="plan-price">5,000<small>원</small></span>
+        <span class="plan-period" id="pl-period-3"></span>
+        <ul>
+          <li>최초 3개월 이용</li>
+          <li>3개월 추가 연장 1회 가능</li>
+          <li>연속 이용은 최대 6개월</li>
+        </ul>
+      </label>
+      <label class="plan" data-plan="6">
+        <input type="radio" name="plan" value="6">
+        <span class="plan-check" aria-hidden="true">✓</span>
+        <span class="plan-name">6개월권</span>
+        <span class="plan-price">10,000<small>원</small></span>
+        <span class="plan-period" id="pl-period-6"></span>
+        <ul>
+          <li>최초 6개월 이용</li>
+          <li>연장 불가</li>
+          <li>종료 후 신규 이용자와 같이 다시 신청</li>
+        </ul>
+      </label>
+    </fieldset>
+    <section class="panel deposit" aria-labelledby="dp-label">
+      <div class="deposit-top">
+        <div>
+          <span class="mono-label" id="dp-label">DEPOSIT / 보증금</span>
+          <p class="deposit-amount">50,000원</p>
+        </div>
+        <button class="btn" id="dp-btn" type="button" aria-expanded="false" aria-controls="dp-bill">가상계좌 확인</button>
+      </div>
+      <p class="small">보증금은 이용료와 별도로 신청할 때 납부합니다. 정상 반납하면 전액 돌려받습니다. 등록금 납부처럼 신청자별 가상계좌가 발급됩니다.</p>
+      <div class="bill" id="dp-bill" hidden>
+        <div class="bill-head">
+          <h3>보증금 납부 고지서</h3>
+          <span class="bill-badge">가상 · 실제 입금 불가</span>
+        </div>
+        <dl>
+          <div class="bill-row"><dt>입금 은행</dt><dd>가상은행</dd></div>
+          <div class="bill-row">
+            <dt>가상계좌 번호</dt>
+            <dd class="acct-wrap"><span class="acct" id="dp-acct"></span><button class="copy" id="dp-copy" type="button">복사</button><span class="copied" id="dp-copied" role="status"></span></dd>
+          </div>
+          <div class="bill-row"><dt>예금주</dt><dd>Hufs 사물함 (가상)</dd></div>
+          <div class="bill-row"><dt>납부 금액</dt><dd>50,000원</dd></div>
+          <div class="bill-row"><dt>납부자</dt><dd id="dp-payer"></dd></div>
+        </dl>
+        <p class="bill-note">프로토타입이므로 실제 입금과 입금 확인은 구현하지 않습니다.</p>
+      </div>
+    </section>
+    <section class="panel summary" aria-labelledby="sm-label">
+      <span class="mono-label" id="sm-label">SUMMARY / 신청 요약</span>
+      <p class="small" id="sm-empty" style="margin-top:12px">이용권을 선택하면 이용료와 합계가 표시됩니다.</p>
+      <dl class="rows" id="sm-list" hidden>
+        <div class="bill-row"><dt>사물함</dt><dd id="sm-locker"></dd></div>
+        <div class="bill-row"><dt>이용권</dt><dd id="sm-plan"></dd></div>
+        <div class="bill-row"><dt>이용 기간</dt><dd id="sm-period"></dd></div>
+        <div class="bill-row"><dt>이용료</dt><dd id="sm-fee"></dd></div>
+        <div class="bill-row"><dt>보증금 (이용료와 별도, 정상 반납 시 전액 반환)</dt><dd>50,000원</dd></div>
+        <div class="bill-row total"><dt>납부 합계</dt><dd id="sm-total"></dd></div>
+      </dl>
+      <p class="refund"><strong>중도 반납 환불 기준</strong> 이용기간의 1/3 이하를 쓰고 반납하면 이용료의 2/3, 1/2 이하면 1/2을 돌려받고, 1/2를 넘기면 이용료 환불이 없습니다. 보증금은 항상 전액 돌려받습니다.</p>
+      <label class="agree" for="sm-agree">
+        <input type="checkbox" id="sm-agree">
+        <span>이용규칙을 확인했으며, 이용권을 다른 사람에게 직접 넘기거나 웃돈을 받고 거래하지 않겠습니다.</span>
+      </label>
+      <p class="error" id="sm-error" role="alert"></p>
+    </section>
+    <div class="action-bar" id="pl-action" hidden>
+      <strong id="pl-action-text"></strong>
+      <button class="btn" id="pl-action-btn" type="button">신청하기</button>
+    </div>
+  </main>
+
+  <main class="zones-page" id="done-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="dn-title" tabindex="-1">신청이 완료되었습니다</h1>
+        <p id="dn-sub"></p>
+      </div>
+    </div>
+    <div class="stack">
+      <section class="panel" aria-labelledby="dn-label">
+        <span class="mono-label" id="dn-label">MY LOCKER / 배정된 사물함</span>
+        <p class="locker-no" id="dn-no" style="margin-top:8px"></p>
+        <p class="locker-meta" id="dn-period"></p>
+      </section>
+      <section class="panel pay" aria-labelledby="pay-label">
+        <span class="mono-label" id="pay-label">PAYMENT / 납부 내역</span>
+        <dl class="rows">
+          <div class="bill-row"><dt>이용료</dt><dd id="pay-fee"></dd></div>
+          <div class="bill-row"><dt>보증금</dt><dd>50,000원</dd></div>
+          <div class="bill-row total"><dt>납부 합계</dt><dd id="pay-total"></dd></div>
+          <div class="bill-row"><dt>보증금 가상계좌</dt><dd><span class="acct" id="pay-acct"></span></dd></div>
+        </dl>
+        <p class="bill-note">프로토타입이므로 실제 입금과 입금 확인은 구현하지 않습니다.</p>
+      </section>
+      <section class="panel" aria-labelledby="tip-label">
+        <span class="mono-label" id="tip-label">GUIDE / 이용 안내</span>
+        <ul class="tips">
+          <li id="dn-extend"></li>
+          <li>연속 이용은 최대 6개월이며, 이후에는 신규 이용자와 같은 조건으로 다시 신청합니다.</li>
+          <li>이용 중 그만 쓰게 되면 중도 반납으로 이용료 일부를 돌려받을 수 있고, 보증금은 전액 돌려받습니다.</li>
+        </ul>
+      </section>
+      <div class="done-actions">
+        <button class="btn" id="dn-mine" type="button">내 사물함 보기</button>
+        <button class="btn secondary" id="dn-home" type="button">홈으로</button>
+      </div>
+    </div>
+  </main>
+
+  <main class="zones-page" id="mine-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="mn-title" tabindex="-1">내 사물함</h1>
+        <p id="mn-sub"></p>
+      </div>
+    </div>
+
+    <section class="panel accent-box" id="mn-none" hidden>
+      <h2>이용 중인 사물함이 없습니다</h2>
+      <p class="small" id="mn-none-text"></p>
+      <button class="btn" id="mn-none-btn" type="button"></button>
+    </section>
+
+    <div class="stack" id="mn-body" hidden>
+      <section class="panel" aria-labelledby="mn-label">
+        <div class="mine-top">
+          <span class="mono-label" id="mn-label">MY LOCKER / 내 사물함</span>
+          <span class="status-badge" id="mn-badge"></span>
+        </div>
+        <p class="locker-no" id="mn-no" style="margin-top:8px"></p>
+        <dl class="facts">
+          <div><dt>이용권</dt><dd id="mn-plan"></dd></div>
+          <div><dt>이용 기간</dt><dd id="mn-period"></dd></div>
+          <div><dt>남은 기간</dt><dd id="mn-left"></dd></div>
+        </dl>
+      </section>
+
+      <section class="panel accent-box" id="mn-reapply" hidden aria-labelledby="mn-re-title">
+        <h2 id="mn-re-title">이용이 끝났습니다</h2>
+        <p class="small" id="mn-re-text"></p>
+        <button class="btn" id="mn-re-btn" type="button"></button>
+      </section>
+
+      <section class="panel" id="mn-refund" aria-labelledby="rf-label">
+        <span class="mono-label" id="rf-label">PROGRESS / 이용 경과와 환불 단계</span>
+        <div class="refbar">
+          <div class="refbar-track" id="rf-bar" role="progressbar" aria-label="이용기간 경과" aria-valuemin="0" aria-valuemax="100">
+            <div class="refbar-fill" id="rf-fill"></div>
+            <i class="refbar-cut" style="left:33.333%"></i>
+            <i class="refbar-cut" style="left:50%"></i>
+          </div>
+          <div class="refbar-labels" aria-hidden="true"><span id="rf-l0">이용료 2/3 환불</span><span id="rf-l1">1/2 환불</span><span id="rf-l2">환불 없음</span></div>
+        </div>
+        <p class="small" id="rf-days" style="margin-top:14px"></p>
+        <p class="small" id="rf-stage"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="dp2-label">
+        <span class="mono-label" id="dp2-label">DEPOSIT / 보증금</span>
+        <dl class="rows" style="margin:12px 0 0">
+          <div class="bill-row"><dt>보증금</dt><dd>50,000원 (정상 반납 시 전액 반환)</dd></div>
+          <div class="bill-row"><dt>보증금 가상계좌</dt><dd><span class="acct" id="mn-acct"></span></dd></div>
+        </dl>
+      </section>
+
+      <section class="panel" id="mn-actions-panel" aria-labelledby="ac-label">
+        <span class="mono-label" id="ac-label">ACTIONS / 연장·반납</span>
+        <div class="mine-actions" id="mn-actions" style="margin-top:14px">
+          <button class="btn" id="mn-extend" type="button">3개월 연장하기</button>
+          <button class="btn secondary" id="mn-return" type="button">중도 반납</button>
+        </div>
+        <p class="small" id="mn-note" style="margin-top:12px"></p>
+      </section>
+    </div>
+  </main>
+
+  <main class="zones-page" id="extend-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="ex-title" tabindex="-1">3개월 연장</h1>
+        <p id="ex-sub">3개월권은 1회 연장할 수 있고, 연장하면 최대 6개월까지 이용합니다.</p>
+      </div>
+      <button class="btn secondary back" id="ex-back" type="button">← 내 사물함</button>
+    </div>
+
+    <div class="stack" id="ex-form">
+      <section class="panel" aria-labelledby="ex-cond-label">
+        <span class="mono-label" id="ex-cond-label">CONDITIONS / 연장 가능 조건</span>
+        <ul class="checks" id="ex-checks"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="ex-chg-label">
+        <span class="mono-label" id="ex-chg-label">CHANGES / 연장 전후</span>
+        <table class="compare">
+          <thead><tr><th scope="col">항목</th><th scope="col">현재</th><th scope="col">연장 후</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">종료일</th><td id="ex-end-now"></td><td class="after" id="ex-end-new"></td></tr>
+            <tr><th scope="row">연속 이용 기간</th><td>3개월</td><td class="after">6개월 (최대)</td></tr>
+            <tr><th scope="row">남은 연장 횟수</th><td>1회</td><td class="after">0회</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel" aria-labelledby="ex-pay-label">
+        <span class="mono-label" id="ex-pay-label">PAYMENT / 납부 내역</span>
+        <dl class="rows" style="margin:12px 0 0">
+          <div class="bill-row"><dt>추가 이용료 (3개월)</dt><dd>5,000원</dd></div>
+          <div class="bill-row"><dt>보증금</dt><dd>변동 없음 (50,000원 유지)</dd></div>
+        </dl>
+        <p class="bill-note">연장 이용료는 아직 정해지지 않아 3개월권 이용료와 같은 금액으로 임시 표시합니다.</p>
+        <button class="btn secondary" id="ex-pay-btn" type="button" aria-expanded="false" aria-controls="ex-bill" style="margin-top:14px">추가 납부 가상계좌 확인</button>
+        <div class="bill" id="ex-bill" hidden>
+          <div class="bill-head">
+            <h3>연장 이용료 납부 안내</h3>
+            <span class="bill-badge">가상 · 실제 입금 불가</span>
+          </div>
+          <dl>
+            <div class="bill-row"><dt>입금 은행</dt><dd>가상은행</dd></div>
+            <div class="bill-row">
+              <dt>가상계좌 번호</dt>
+              <dd class="acct-wrap"><span class="acct" id="ex-acct"></span><button class="copy" id="ex-copy" type="button">복사</button><span class="copied" id="ex-copied" role="status"></span></dd>
+            </div>
+            <div class="bill-row"><dt>예금주</dt><dd>Hufs 사물함 (가상)</dd></div>
+            <div class="bill-row"><dt>납부 금액</dt><dd>5,000원 (연장 이용료만, 보증금 추가 납부 없음)</dd></div>
+            <div class="bill-row"><dt>납부자</dt><dd id="ex-payer"></dd></div>
+            <div class="bill-row"><dt>납부 기한</dt><dd>미정 (운영 세부 기준 확정 후 안내)</dd></div>
+          </dl>
+          <p class="bill-note">신청 때 안내받은 보증금 계좌와 다른 연장 전용 가상계좌입니다. 프로토타입이므로 실제 입금과 입금 확인은 구현하지 않습니다.</p>
+        </div>
+        <p class="refund">연장한 뒤 중도 반납하면 환불 단계는 지금 이용 중인 구간(최초 3개월 또는 연장한 3개월)을 기준으로 계산합니다. (프로토타입 임시 기준)</p>
+      </section>
+
+      <section class="panel" aria-labelledby="ex-ok-label">
+        <span class="mono-label" id="ex-ok-label">CONFIRM / 확인</span>
+        <label class="agree" for="ex-agree">
+          <input type="checkbox" id="ex-agree">
+          <span>연장은 1회만 가능하며, 연장한 뒤에는 다시 연장할 수 없고 6개월 이용이 끝나면 다시 신청해야 한다는 점을 확인했습니다.</span>
+        </label>
+        <p class="error" id="ex-error" role="alert" style="margin-top:12px"></p>
+        <div class="ex-actions" style="margin-top:16px">
+          <button class="btn" id="ex-confirm" type="button">3개월 연장 신청</button>
+          <button class="btn secondary" id="ex-cancel" type="button">취소</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel accent-box" id="ex-success" hidden aria-labelledby="ex-ok-title">
+      <h2 id="ex-ok-title" tabindex="-1">연장이 완료되었습니다</h2>
+      <p class="small" id="ex-ok-text"></p>
+      <div class="ex-actions" style="margin-top:16px">
+        <button class="btn" id="ex-to-mine" type="button">내 사물함 보기</button>
+        <button class="btn secondary" id="ex-to-home" type="button">홈으로</button>
+      </div>
+    </section>
+  </main>
+
+  <main class="zones-page" id="return-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="rt-title" tabindex="-1">중도 반납</h1>
+        <p id="rt-sub">이용기간이 끝나기 전에 사물함을 반납하고 환불받을 계좌를 입력합니다.</p>
+      </div>
+      <button class="btn secondary back" id="rt-back" type="button">← 내 사물함</button>
+    </div>
+
+    <div class="stack" id="rt-form">
+      <section class="panel" aria-labelledby="rt-tgt-label">
+        <span class="mono-label" id="rt-tgt-label">TARGET / 반납 대상</span>
+        <dl class="rows" style="margin:12px 0 0">
+          <div class="bill-row"><dt>사물함</dt><dd id="rt-locker"></dd></div>
+          <div class="bill-row"><dt>이용권</dt><dd id="rt-plan"></dd></div>
+          <div class="bill-row"><dt>이용 기간</dt><dd id="rt-period"></dd></div>
+          <div class="bill-row"><dt>환불 기준 구간</dt><dd id="rt-seg"></dd></div>
+        </dl>
+        <p class="refund">반납한 사물함은 바로 다른 사람에게 열리지 않고 <strong>반납 대기</strong>로 있다가, 다음 방출 시각(<strong id="rt-rel"></strong>)에 모든 이용자에게 한꺼번에 열립니다.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="rt-calc-label">
+        <span class="mono-label" id="rt-calc-label">REFUND / 환불 금액</span>
+        <div class="refbar-labels" aria-hidden="true" style="margin-top:14px"><span id="rt-l0">이용료 2/3 환불</span><span id="rt-l1">1/2 환불</span><span id="rt-l2">환불 없음</span></div>
+        <dl class="rows" style="margin:8px 0 0">
+          <div class="bill-row"><dt>납부한 이용료 (기준 구간)</dt><dd id="rt-fee"></dd></div>
+          <div class="bill-row"><dt id="rt-stage-label">이용료 환불</dt><dd id="rt-fee-refund"></dd></div>
+          <div class="bill-row" id="rt-pre-row" hidden><dt>연장 이용료 (아직 시작 전)</dt><dd id="rt-pre"></dd></div>
+          <div class="bill-row"><dt>보증금 (전액 반환)</dt><dd>50,000원</dd></div>
+          <div class="bill-row total"><dt>환불 합계</dt><dd id="rt-total"></dd></div>
+        </dl>
+        <p class="refund">환불 단계는 이용 기간을 일 단위로 나눠 1/3 이내 → 이용료의 2/3, 1/2 이내 → 1/2, 1/2 초과 → 없음으로 정합니다. 일할 계산하지 않습니다. 원 미만 금액 처리와 환불 처리 시기는 아직 정해지지 않아 프로토타입에서 원 단위 이하를 버림으로 임시 표시합니다.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="rt-acct-label">
+        <span class="mono-label" id="rt-acct-label">REFUND ACCOUNT / 환불 계좌</span>
+        <p class="warn">프로토타입입니다. 실제 계좌번호를 입력하지 말고 연습용 가상 번호를 입력해 주세요. 입력한 내용은 저장·전송되지 않고 이 화면에서만 사용됩니다.</p>
+        <div class="form" style="margin-top:16px">
+          <div class="field">
+            <label for="rt-bank">은행</label>
+            <div class="control"><select id="rt-bank">
+              <option value="">은행을 선택하세요</option>
+              <option>국민은행</option><option>신한은행</option><option>우리은행</option><option>하나은행</option>
+              <option>농협은행</option><option>기업은행</option><option>카카오뱅크</option><option>토스뱅크</option>
+              <option>케이뱅크</option><option>우체국</option><option>새마을금고</option>
+            </select></div>
+          </div>
+          <div class="field">
+            <label for="rt-num">계좌번호</label>
+            <div class="control"><input id="rt-num" type="text" inputmode="numeric" autocomplete="off" placeholder="숫자와 하이픈(-)만 입력, 예: 123-456-789012"></div>
+            <p class="hint">숫자 8~16자리</p>
+          </div>
+          <div class="field">
+            <label for="rt-holder">예금주</label>
+            <div class="control"><input id="rt-holder" type="text" autocomplete="off" placeholder="예금주 이름"></div>
+            <p class="hint">본인 명의 계좌만 입력할 수 있다고 가정합니다. (프로토타입 임시 기준)</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="rt-ok-label">
+        <span class="mono-label" id="rt-ok-label">CONFIRM / 확인</span>
+        <label class="agree" for="rt-agree">
+          <input type="checkbox" id="rt-agree">
+          <span>사물함을 비웠고, 반납하면 이용 권리가 바로 끝나며 되돌릴 수 없다는 점을 확인했습니다. 이용권 양도나 거래는 할 수 없습니다.</span>
+        </label>
+        <p class="error" id="rt-error" role="alert" style="margin-top:12px"></p>
+        <div class="ex-actions" style="margin-top:16px">
+          <button class="btn" id="rt-confirm" type="button">반납 신청</button>
+          <button class="btn secondary" id="rt-cancel" type="button">취소</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel accent-box" id="rt-success" hidden aria-labelledby="rt-ok-title">
+      <h2 id="rt-ok-title" tabindex="-1">반납이 완료되었습니다</h2>
+      <p class="small" id="rt-ok-text"></p>
+      <dl class="rows" style="margin:12px 0 0">
+        <div class="bill-row"><dt>반납한 사물함</dt><dd id="rs-locker"></dd></div>
+        <div class="bill-row"><dt>이용료 환불</dt><dd id="rs-fee"></dd></div>
+        <div class="bill-row"><dt>보증금 반환</dt><dd>50,000원</dd></div>
+        <div class="bill-row total"><dt>환불 합계</dt><dd id="rs-total"></dd></div>
+        <div class="bill-row"><dt>환불 계좌</dt><dd id="rs-acct"></dd></div>
+        <div class="bill-row"><dt>환불 처리 시기</dt><dd>미정 (운영 세부 기준 확정 후 안내)</dd></div>
+      </dl>
+      <div class="ex-actions" style="margin-top:16px">
+        <button class="btn" id="rt-to-home" type="button">홈으로</button>
+        <button class="btn secondary" id="rt-to-mine" type="button">내 사물함 보기</button>
+      </div>
+    </section>
+  </main>
+
+  <main class="zones-page" id="wish-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="wi-title" tabindex="-1">찜 목록</h1>
+        <p id="wi-sub"></p>
+      </div>
+      <button class="btn secondary back" id="wi-find" type="button">사물함 현황 보기</button>
+    </div>
+    <p class="refund" style="margin:0 0 18px">찜은 자리를 잡아 두는 기능이 아닙니다. 신청이 열리면 먼저 신청한 사람에게 배정되고, 찜해 둔 칸을 다른 사람이 먼저 신청하면 "이미 신청됨"으로 바뀝니다. 찜은 최대 3칸까지 담을 수 있고(프로토타입 임시 기준), 신청을 마치면 목록이 비워집니다. 내가 찜한 칸은 다른 사람에게 보이지 않습니다.</p>
+    <div class="empty" id="wi-empty">찜한 사물함이 없습니다. 사물함 현황에서 칸을 선택해 찜해 두세요. 반납 대기 칸도 미리 찜할 수 있습니다.</div>
+    <ul class="wish-list" id="wi-list"></ul>
+  </main>
+
+  <main class="zones-page" id="report-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="rp-title" tabindex="-1">웃돈 거래 신고</h1>
+        <p>사물함 이용권을 정해진 이용료 외에 추가금을 받고 거래한 정황을 발견하면 신고할 수 있습니다.</p>
+      </div>
+    </div>
+
+    <form class="report-card" id="rp-form" novalidate>
+      <p class="rc-warn">프로토타입입니다. 실제 대화 캡처나 개인정보가 담긴 사진은 올리지 마세요. 고른 파일은 이 화면에서 미리보기로만 쓰이고 어디로도 전송되지 않습니다.</p>
+      <div class="rc-field">
+        <span class="rc-label" id="rp-loc-label">LOCKER NUMBER / 신고할 사물함</span>
+        <div class="rc-row">
+          <select id="rp-floor" aria-labelledby="rp-loc-label" aria-label="층">
+            <option value="">— 층 선택 —</option>
+          </select>
+          <select id="rp-no" aria-labelledby="rp-loc-label" aria-label="사물함 번호" disabled>
+            <option value="">— 번호 선택 —</option>
+          </select>
+        </div>
+      </div>
+      <div class="rc-field">
+        <label class="rc-label" for="rp-memo">DETAILS / 거래 정황 (필수)</label>
+        <textarea id="rp-memo" maxlength="500" placeholder="언제, 어떤 방식으로 추가금이 오갔는지 확인한 내용을 적어 주세요. (10자 이상)"></textarea>
+        <p class="rc-count" id="rp-count" aria-hidden="true">0 / 500</p>
+      </div>
+      <div class="rc-field">
+        <span class="rc-label" id="rp-file-label">EVIDENCE / 증거 사진 (필수)</span>
+        <label class="rc-drop" id="rp-drop">
+          <input type="file" id="rp-file" accept="image/*" aria-labelledby="rp-file-label">
+          <strong>TAP TO UPLOAD</strong>
+          <span>사물함 번호와 거래 정황이 보이게 캡처 (이미지 5MB 이하)</span>
+        </label>
+        <div class="rc-preview" id="rp-preview" hidden>
+          <img id="rp-thumb" alt="선택한 증거 사진 미리보기">
+          <div class="rc-file" id="rp-filename"></div>
+          <button type="button" id="rp-remove">삭제</button>
+        </div>
+      </div>
+      <p class="error" id="rp-error" role="alert"></p>
+      <button class="rc-submit" type="submit">신고 제출하기</button>
+    </form>
+
+    <section class="panel accent-box" id="rp-success" hidden aria-labelledby="rp-ok-title" style="max-width:640px">
+      <h2 id="rp-ok-title" tabindex="-1">신고가 접수되었습니다</h2>
+      <p class="small" id="rp-ok-text"></p>
+      <div class="ex-actions" style="margin-top:16px">
+        <button class="btn" id="rp-again" type="button">다른 신고 작성</button>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:24px;max-width:640px" aria-labelledby="rp-rule-label">
+      <span class="mono-label" id="rp-rule-label">유효 신고 기준 (프로토타입 임시 기준)</span>
+      <ol class="rules" style="margin-top:12px">
+        <li><span class="n">1</span><span>거래 정황이 확인되는 증거 사진(캡처 등)이 있을 것</span></li>
+        <li><span class="n">2</span><span>신고한 사물함 번호와 증거 속 사물함 번호가 일치할 것</span></li>
+        <li><span class="n">3</span><span>이미 접수된 신고가 있는 사물함은 중복 신고할 수 없음</span></li>
+        <li><span class="n">4</span><span>신고자는 최근 7일 안에 허위 신고로 기각된 이력이 없을 것</span></li>
+      </ol>
+      <p class="refund">신고 접수만으로 배정이 확정되지 않습니다. 거래 사실이 확인되면 기존 이용권이 취소되고 보증금은 돌려받을 수 없으며, 해당 사물함은 제보자에게 배정됩니다(3개월 이용 가능). 본인 사물함은 신고할 수 없습니다.</p>
+    </section>
+
+    <section class="panel" style="margin-top:24px;max-width:640px" aria-labelledby="rp-hist-label">
+      <span class="mono-label" id="rp-hist-label">MY REPORTS / 내 신고 내역</span>
+      <p class="small" id="rp-hist-empty">아직 접수한 신고가 없습니다.</p>
+      <ul class="rp-list" id="rp-list"></ul>
+    </section>
+  </main>
+
+  <main class="zones-page" id="rules-view" hidden>
+    <div class="page-head">
+      <div>
+        <h1 id="ru-title" tabindex="-1">이용규칙·안내</h1>
+        <p>도서관 사물함 이용규칙을 카드뉴스로 모았습니다. 좌우 버튼이나 방향키로 넘겨 보세요.</p>
+      </div>
+      <button class="btn secondary back" id="ru-report" type="button">웃돈 거래 신고하기</button>
+    </div>
+    <p class="refund cn-notice">이 카드뉴스는 팀이 제안하는 운영 방식을 설명하는 가상 안내이며, 실제 학교 공지가 아닙니다. 카드에 나온 기준 중 일부는 아직 확정 전인 임시 기준입니다.</p>
+    <div class="cn-wrap">
+      <section class="cn-viewer" aria-roledescription="carousel" aria-label="사물함 이용수칙 카드뉴스">
+        <div class="cn-frame" id="cn-frame" tabindex="0" aria-live="polite"><img id="cn-img" alt="" width="1080" height="1350"></div>
+        <div class="cn-nav">
+          <button class="btn secondary" id="cn-prev" type="button">← 이전</button>
+          <span class="cn-count" id="cn-count"></span>
+          <button class="btn" id="cn-next" type="button">다음 →</button>
+        </div>
+        <div class="cn-thumbs" id="cn-thumbs"></div>
+      </section>
+      <section class="panel cn-text" aria-labelledby="cn-text-title">
+        <span class="mono-label">TEXT / 글로 보기</span>
+        <h2 id="cn-text-title"></h2>
+        <ul id="cn-text-list"></ul>
+      </section>
+    </div>
+  </main>
+
+  <main class="placeholder" id="placeholder-view" hidden>
+    <div class="panel">
+      <span class="mono-label">Coming next</span>
+      <h2 id="ph-title" tabindex="-1"></h2>
+      <p>이 화면은 다음 단계에서 만듭니다.</p>
+      <button class="btn" id="ph-back" type="button">홈으로</button>
+    </div>
+  </main>
+
+  <aside class="clock-demo" aria-label="시연 컨트롤">
+    <p id="cd-msg" role="status" title="누르면 닫힙니다"></p>
+    <details id="cd">
+      <summary>시연 컨트롤 · <span id="cd-clock"></span></summary>
+      <div class="cd-body">
+        <p>프로토타입 전용입니다. 가상 시계를 앞으로 움직여 반납 대기 사물함이 열리는 순간을 확인합니다. 되돌릴 수는 없습니다.</p>
+        <div class="cd-btns">
+          <button type="button" id="cd-pre">방출 1분 전으로 (09:59)</button>
+          <button type="button" id="cd-rel">방출 시각으로 (10:00)</button>
+          <button type="button" id="cd-day">하루 뒤로</button>
+          <button type="button" id="cd-rp-ok">내 최근 신고: 확인됨 처리</button>
+          <button type="button" id="cd-rp-no">내 최근 신고: 기각 처리</button>
+          <button type="button" id="cd-reset">처음으로 초기화 (12-01 10:00)</button>
+        </div>
+      </div>
+    </details>
+  </aside>
+
+  <footer class="app-foot">Hufs 사물함 프로토타입 · 제안 중인 운영 방식을 체험하는 수업 프로젝트이며 실제 학교 서비스가 아닙니다.</footer>
+</div>
+
+<script>
+(function () {
+  var PASSWORD = "demo1234";
+  var TODAY = "2026-12-01"; /* virtual date, moved by the demo control */
+  var NOW_MIN = 600; /* virtual time of day in minutes (10:00) */
+  var RELEASE_MIN = 600; /* lockers open at 10:00 on the 1st and 15th */
+  var FLOORS = [2, 3, 4, 5];
+  var PER = 169; /* lockers per floor, numbered 1-169 */
+  var FREE = { 2: 24, 3: 18, 4: 26, 5: 20 }; /* virtual number of free lockers per floor */
+  var VIEW_LABEL = { home: "홈", zones: "사물함 현황", apply: "신청", confirm: "금액 확인", extend: "연장", return: "중도 반납", mine: "내 사물함", rules: "이용규칙·안내" };
+
+  var accounts = [
+    { name: "학생 A", email: "student-a@demo.test", short: "이용 없음", locker: null },
+    { name: "학생 B", email: "student-b@demo.test", short: "3개월권, 연장 전", locker: { floor: 3, no: 45 }, plan: "3개월권", extended: false, start: "2026-11-01", end: "2027-02-01" },
+    { name: "학생 C", email: "student-c@demo.test", short: "6개월 도달", locker: { floor: 2, no: 19 }, plan: "3개월권", extended: true, start: "2026-06-01", end: "2026-12-01" },
+    { name: "학생 D", email: "student-d@demo.test", short: "6개월권, 61일 경과", locker: { floor: 2, no: 22 }, plan: "6개월권", extended: false, start: "2026-10-01", end: "2027-04-01" },
+    { name: "학생 E", email: "student-e@demo.test", short: "6개월권, 30일 경과", locker: { floor: 4, no: 87 }, plan: "6개월권", extended: false, start: "2026-11-01", end: "2027-05-01" },
+    { name: "학생 F", email: "student-f@demo.test", short: "6개월권, 153일 경과", locker: { floor: 5, no: 130 }, plan: "6개월권", extended: false, start: "2026-07-01", end: "2027-01-01" }
+  ];
+  accounts.forEach(function (a) { a.password = PASSWORD; });
+
+  function pad3(n) { return ("00" + n).slice(-3); }
+  function lockerText(l) { return l.floor + "F-" + pad3(l.no); }
+  function rng(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  /* Virtual occupancy: accounts' own lockers are always in use, the rest is a seeded random fill. */
+  var OCC = {};
+  FLOORS.forEach(function (f) {
+    var used = {}, count = 0, nums = [], i;
+    accounts.forEach(function (a) { if (a.locker && a.locker.floor === f) { used[a.locker.no] = true; count++; } });
+    for (i = 1; i <= PER; i++) if (!used[i]) nums.push(i);
+    var rand = rng(f * 7919);
+    for (i = nums.length - 1; i > 0; i--) { var j = Math.floor(rand() * (i + 1)); var t = nums[i]; nums[i] = nums[j]; nums[j] = t; }
+    var need = PER - FREE[f] - count;
+    var set = {};
+    Object.keys(used).forEach(function (k) { set[k] = true; });
+    nums.slice(0, need).forEach(function (n) { set[n] = true; });
+    OCC[f] = set;
+  });
+
+  /* Returned lockers wait here until the next release time (1st or 15th, 10:00). Seed a few as already waiting. */
+  var PEND = {};
+  FLOORS.forEach(function (f) {
+    var mine = {};
+    accounts.forEach(function (a) { if (a.locker && a.locker.floor === f) mine[a.locker.no] = true; });
+    var pend = {}, n = 0;
+    Object.keys(OCC[f]).forEach(function (k) {
+      if (n < 5 && !mine[k]) { pend[k] = "2026-12-15"; delete OCC[f][k]; n++; }
+    });
+    PEND[f] = pend;
+  });
+  /* starting state, kept so the demo control can reset everything */
+  var SNAP = { acc: JSON.parse(JSON.stringify(accounts)), occ: JSON.parse(JSON.stringify(OCC)), pend: JSON.parse(JSON.stringify(PEND)) };
+
+  var $ = function (id) { return document.getElementById(id); };
+  function dayNum(s) { var p = s.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000; }
+  function diff(a, b) { return Math.round(dayNum(b) - dayNum(a)); }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function addDays(s, n) {
+    var d = new Date(dayNum(s) * 86400000 + n * 86400000);
+    return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate());
+  }
+  function hhmm(m) { return pad(Math.floor(m / 60)) + ":" + pad(m % 60); }
+  function isOpenDay() { var d = TODAY.slice(8); return (d === "01" || d === "15") && NOW_MIN >= RELEASE_MIN; }
+  /* date of the next release (1st or 15th at 10:00); today counts while it is still before 10:00 */
+  function nextRelease() {
+    var d = TODAY.slice(8);
+    if ((d === "01" || d === "15") && NOW_MIN < RELEASE_MIN) return TODAY;
+    if (+d < 15) return TODAY.slice(0, 8) + "15";
+    return nextFirst(TODAY);
+  }
+  function waitText(rel) {
+    var days = diff(TODAY, rel);
+    if (days >= 1) return "D-" + days;
+    var m = RELEASE_MIN - NOW_MIN, h = Math.floor(m / 60);
+    return (h ? h + "시간 " : "") + (m % 60) + "분 후";
+  }
+  function pendCount(f, rel) { return Object.keys(PEND[f]).filter(function (k) { return !rel || PEND[f][k] === rel; }).length; }
+  function pendTotal(rel) { return FLOORS.reduce(function (t, f) { return t + pendCount(f, rel); }, 0); }
+  function settle() {
+    FLOORS.forEach(function (f) {
+      Object.keys(PEND[f]).forEach(function (k) {
+        var d = PEND[f][k];
+        if (diff(TODAY, d) < 0 || (d === TODAY && NOW_MIN >= RELEASE_MIN)) delete PEND[f][k];
+      });
+    });
+  }
+  function nextFirst(s) {
+    var p = s.split("-"), y = +p[0], m = +p[1];
+    m += 1; if (m > 12) { m = 1; y += 1; }
+    return y + "-" + pad(m) + "-01";
+  }
+
+  /* ---------- Login ---------- */
+  var tabLogin = $("tab-login"), tabSignup = $("tab-signup");
+  var loginForm = $("login-form"), signupForm = $("signup-form");
+  var loginError = $("login-error"), signupError = $("signup-error");
+
+  function selectTab(which, focus) {
+    var isLogin = which === "login";
+    tabLogin.setAttribute("aria-selected", String(isLogin));
+    tabSignup.setAttribute("aria-selected", String(!isLogin));
+    tabLogin.tabIndex = isLogin ? 0 : -1;
+    tabSignup.tabIndex = isLogin ? -1 : 0;
+    loginForm.hidden = !isLogin;
+    signupForm.hidden = isLogin;
+    loginError.textContent = "";
+    signupError.textContent = "";
+    if (focus) (isLogin ? tabLogin : tabSignup).focus();
+  }
+  tabLogin.addEventListener("click", function () { selectTab("login"); });
+  tabSignup.addEventListener("click", function () { selectTab("signup"); });
+  [tabLogin, tabSignup].forEach(function (t) {
+    t.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        selectTab(t === tabLogin ? "signup" : "login", true);
+      }
+    });
+  });
+
+  document.querySelectorAll(".toggle").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var input = $(btn.getAttribute("data-target"));
+      var show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.textContent = show ? "숨김" : "표시";
+      btn.setAttribute("aria-label", show ? "비밀번호 숨김" : "비밀번호 표시");
+    });
+  });
+
+  var chips = $("chips");
+  accounts.forEach(function (a) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    var who = document.createElement("span");
+    who.className = "who";
+    who.textContent = a.name;
+    var state = document.createElement("span");
+    state.className = "state";
+    state.textContent = a.short;
+    b.appendChild(who);
+    b.appendChild(state);
+    b.addEventListener("click", function () {
+      selectTab("login");
+      $("login-email").value = a.email;
+      $("login-password").value = PASSWORD;
+      clearInvalid(loginForm);
+      loginForm.querySelector(".btn").focus();
+    });
+    chips.appendChild(b);
+  });
+
+  function clearInvalid(form) {
+    form.querySelectorAll("input").forEach(function (i) { i.removeAttribute("aria-invalid"); });
+  }
+  function fail(errEl, input, message) {
+    errEl.textContent = message;
+    if (input) { input.setAttribute("aria-invalid", "true"); input.focus(); }
+  }
+  function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+  loginForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    clearInvalid(loginForm);
+    loginError.textContent = "";
+    var emailEl = $("login-email"), pwEl = $("login-password");
+    var email = emailEl.value.trim().toLowerCase();
+    var pw = pwEl.value;
+    if (!email) return fail(loginError, emailEl, "이메일을 입력해 주세요.");
+    if (!pw) return fail(loginError, pwEl, "비밀번호를 입력해 주세요.");
+    var found = accounts.filter(function (a) { return a.email === email && a.password === pw; })[0];
+    if (!found) {
+      emailEl.setAttribute("aria-invalid", "true");
+      pwEl.setAttribute("aria-invalid", "true");
+      loginError.textContent = "이메일 또는 비밀번호가 맞지 않습니다. 아래 가상 계정을 눌러 채운 뒤 다시 시도해 주세요.";
+      return;
+    }
+    signIn(found);
+  });
+
+  signupForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    clearInvalid(signupForm);
+    signupError.textContent = "";
+    var nameEl = $("signup-name"), emailEl = $("signup-email"), pwEl = $("signup-password");
+    var name = nameEl.value.trim();
+    var email = emailEl.value.trim().toLowerCase();
+    var pw = pwEl.value;
+    if (name.length < 2) return fail(signupError, nameEl, "이름을 2자 이상 입력해 주세요.");
+    if (!isEmail(email)) return fail(signupError, emailEl, "이메일 형식이 맞지 않습니다. 예: me@demo.test");
+    if (accounts.some(function (a) { return a.email === email; })) return fail(signupError, emailEl, "이미 있는 이메일입니다. 다른 이메일을 입력해 주세요.");
+    if (pw.length < 6) return fail(signupError, pwEl, "비밀번호는 6자 이상이어야 합니다.");
+    var acc = { name: name, email: email, password: pw, short: "이용 없음", locker: null };
+    accounts.push(acc);
+    signIn(acc);
+  });
+
+  /* ---------- App ---------- */
+  var current = null;
+  var homeView = $("home-view"), phView = $("placeholder-view");
+
+  function signIn(acc) {
+    current = acc;
+    $("auth-shell").hidden = true;
+    $("app").hidden = false;
+    $("user-name").textContent = acc.name;
+    var parts = acc.name.split(/\s+/);
+    $("avatar").textContent = (parts.length > 1 ? parts[parts.length - 1] : acc.name).charAt(0).toUpperCase();
+    renderHome(acc);
+    go("home");
+    window.scrollTo(0, 0);
+  }
+
+  function signOut() {
+    current = null;
+    $("app").hidden = true;
+    $("auth-shell").hidden = false;
+    loginForm.reset();
+    signupForm.reset();
+    selectTab("login");
+    $("login-email").focus();
+  }
+  $("logout").addEventListener("click", signOut);
+
+  function applyState(acc) {
+    var applyDay = isOpenDay();
+    var left = acc.locker ? diff(TODAY, acc.end) : null;
+    var active = !!acc.locker && left > 0;
+    return { applyDay: applyDay, active: active, canApply: applyDay && !active };
+  }
+
+  var curView = "home";
+  function updateClock() { $("cd-clock").textContent = TODAY + " " + hhmm(NOW_MIN); }
+  function go(view, opts) {
+    curView = view;
+    updateClock();
+    var menuView = (view === "plan" || view === "done") ? "apply" : (view === "extend" || view === "return") ? "mine" : view;
+    document.querySelectorAll("#menu button").forEach(function (b) {
+      if (b.getAttribute("data-view") === menuView) b.setAttribute("aria-current", "page");
+      else b.removeAttribute("aria-current");
+    });
+    homeView.hidden = view !== "home";
+    $("zones-view").hidden = view !== "zones";
+    $("apply-view").hidden = view !== "apply";
+    $("plan-view").hidden = view !== "plan";
+    $("done-view").hidden = view !== "done";
+    $("mine-view").hidden = view !== "mine";
+    $("extend-view").hidden = view !== "extend";
+    $("return-view").hidden = view !== "return";
+    $("rules-view").hidden = view !== "rules";
+    $("wish-view").hidden = view !== "wish";
+    $("report-view").hidden = view !== "report";
+    updateWishBadge();
+    phView.hidden = view === "home" || view === "zones" || view === "apply" || view === "plan" || view === "done" || view === "mine" || view === "extend" || view === "return" || view === "rules" || view === "wish" || view === "report";
+    if (view === "home") {
+      renderHome(current);
+      $("home-title").focus();
+    } else if (view === "zones") {
+      zFloor = null; zSel = null;
+      renderZonesView();
+      $("zv-title").focus();
+    } else if (view === "apply") {
+      aFloor = opts && opts.floor ? opts.floor : null;
+      aSel = opts && opts.sel ? opts.sel : null;
+      renderApply();
+      $("ap-title").focus();
+    } else if (view === "plan") {
+      if (!(opts && opts.sel)) return go("apply");
+      pSel = opts.sel; pPlan = null;
+      $("sm-agree").checked = false; $("sm-error").textContent = "";
+      renderPlan();
+      $("pl-title").focus();
+    } else if (view === "report") {
+      renderReport(true);
+      $("rp-title").focus();
+    } else if (view === "wish") {
+      renderWish();
+      $("wi-title").focus();
+    } else if (view === "rules") {
+      cnIdx = 0;
+      renderRules();
+      $("ru-title").focus();
+    } else if (view === "return") {
+      renderReturn();
+      $("rt-title").focus();
+    } else if (view === "extend") {
+      renderExtend();
+      $("ex-title").focus();
+    } else if (view === "mine") {
+      renderMine();
+      $("mn-title").focus();
+    } else if (view === "done") {
+      renderDone();
+      $("dn-title").focus();
+    } else {
+      $("ph-title").textContent = VIEW_LABEL[view] + " 화면";
+      $("ph-title").focus();
+    }
+  }
+
+  /* ---------- Apply page: step 1, pick a free locker ---------- */
+  var aFloor = null, aSel = null;
+  var apFloors = $("ap-floors");
+  FLOORS.forEach(function (f) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "floor";
+    b.textContent = f + "F";
+    b.setAttribute("aria-pressed", "false");
+    b.setAttribute("data-floor", String(f));
+    b.addEventListener("click", function () { aFloor = f; aSel = null; renderApply(); });
+    apFloors.appendChild(b);
+  });
+  $("ap-action-btn").addEventListener("click", function () { go("plan", { sel: aSel }); });
+  $("ap-grid").addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest(".cell") : null;
+    if (!t || !t.classList.contains("pick")) return;
+    aSel = { floor: aFloor, no: +t.getAttribute("data-no") };
+    renderApply();
+    var again = $("ap-grid").querySelector('.cell[data-no="' + aSel.no + '"]');
+    if (again) again.focus();
+  });
+
+  function renderApply() {
+    var st = applyState(current);
+    $("ap-sub").textContent = st.canApply
+      ? "층을 고르면 그 층의 빈 사물함만 모아서 보여 드립니다. 신청할 사물함을 선택하세요."
+      : st.applyDay
+        ? "이용 중인 사물함이 있어 지금은 새로 신청할 수 없습니다. 빈 사물함은 볼 수 있습니다."
+        : "신청은 매월 1일·15일 오전 10시에 열립니다. 지금은 빈 사물함을 보고 마음에 드는 칸을 찜해 둘 수 있습니다.";
+    document.querySelectorAll("#ap-floors .floor").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(+b.getAttribute("data-floor") === aFloor));
+    });
+    var panel = $("ap-panel"), empty = $("ap-empty"), act = $("ap-action");
+    if (aFloor === null) { panel.hidden = true; empty.hidden = false; act.hidden = true; return; }
+    empty.hidden = true; panel.hidden = false;
+    var used = OCC[aFloor], pendA = PEND[aFloor], grid = $("ap-grid"), count = 0;
+    grid.textContent = "";
+    for (var n = 1; n <= PER; n++) {
+      if (used[n] || pendA[n]) continue;
+      count++;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = pad3(n);
+      b.setAttribute("data-no", String(n));
+      b.className = "cell free pick";
+      b.setAttribute("aria-label", aFloor + "층 " + n + "번 빈 사물함");
+      if (isWished({ floor: aFloor, no: n })) { b.className += " wished"; b.setAttribute("aria-label", aFloor + "층 " + n + "번 빈 사물함, 찜함"); }
+      if (aSel && aSel.floor === aFloor && aSel.no === n) { b.className += " sel"; b.setAttribute("aria-pressed", "true"); }
+      grid.appendChild(b);
+    }
+    $("ap-grid-title").textContent = aFloor + "층 빈 사물함";
+    $("ap-grid-count").textContent = "신청 가능 " + count + "칸";
+    if (aSel) {
+      act.hidden = false;
+      $("ap-action-text").textContent = "선택한 사물함 " + aSel.floor + "층 " + pad3(aSel.no) + "번";
+      $("ap-wish-btn").textContent = isWished(aSel) ? "♥ 찜 해제" : "♡ 찜하기";
+      $("ap-wish-btn").setAttribute("aria-pressed", String(isWished(aSel)));
+      $("ap-action-btn").hidden = !st.canApply;
+      $("ap-note").textContent = aNote || actionNote("free", st);
+      aNote = "";
+    } else act.hidden = true;
+  }
+
+  /* ---------- Report page (웃돈 거래 신고) ---------- */
+  var REPORTS = [];
+  var rpUrl = null, rpFile = null;
+  $("ru-report").addEventListener("click", function () { go("report"); });
+  function rpOccupied(f) {
+    var my = current.locker && current.locker.floor === f ? current.locker.no : -1;
+    return Object.keys(OCC[f]).map(Number).filter(function (n) { return n !== my; }).sort(function (a, b) { return a - b; });
+  }
+  function rpClearFile() {
+    if (rpUrl) { URL.revokeObjectURL(rpUrl); rpUrl = null; }
+    rpFile = null;
+    $("rp-file").value = "";
+    $("rp-preview").hidden = true;
+    $("rp-drop").hidden = false;
+  }
+  function renderReport(reset) {
+    if (reset) {
+      $("rp-form").hidden = false;
+      $("rp-success").hidden = true;
+      var fs = $("rp-floor");
+      fs.textContent = "";
+      var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "— 층 선택 —"; fs.appendChild(o0);
+      FLOORS.forEach(function (f) { var o = document.createElement("option"); o.value = String(f); o.textContent = f + "층"; fs.appendChild(o); });
+      var ns = $("rp-no"); ns.textContent = ""; var n0 = document.createElement("option"); n0.value = ""; n0.textContent = "— 번호 선택 —"; ns.appendChild(n0); ns.disabled = true;
+      $("rp-memo").value = ""; $("rp-count").textContent = "0 / 500";
+      $("rp-error").textContent = "";
+      rpClearFile();
+    }
+    renderReportList();
+  }
+  function renderReportList() {
+    var mine = REPORTS.filter(function (r) { return r.by === current.name; });
+    $("rp-hist-empty").hidden = mine.length > 0;
+    var ul = $("rp-list");
+    ul.textContent = "";
+    mine.slice().reverse().forEach(function (r) {
+      var li = document.createElement("li"); li.className = "rp-item";
+      var top = document.createElement("div"); top.className = "rp-top";
+      var id = document.createElement("span"); id.className = "rp-id"; id.textContent = r.id + " · " + lockerKo(r);
+      var pill = document.createElement("span"); pill.className = "wish-pill" + (r.status === "확인됨" ? " ok" : r.status === "기각" ? " bad" : ""); pill.textContent = r.status;
+      top.appendChild(id); top.appendChild(pill);
+      var p = document.createElement("p"); p.textContent = r.at + " 접수 · 증거 " + r.file + (r.note ? " · " + r.note : " · 검토 중입니다. 접수만으로 배정이 확정되지는 않습니다.");
+      li.appendChild(top); li.appendChild(p);
+      ul.appendChild(li);
+    });
+  }
+  $("rp-floor").addEventListener("change", function () {
+    var f = +this.value, ns = $("rp-no");
+    ns.textContent = "";
+    var n0 = document.createElement("option"); n0.value = ""; n0.textContent = "— 번호 선택 —"; ns.appendChild(n0);
+    if (f) rpOccupied(f).forEach(function (n) { var o = document.createElement("option"); o.value = String(n); o.textContent = pad3(n) + "번"; ns.appendChild(o); });
+    ns.disabled = !f;
+    $("rp-error").textContent = "";
+  });
+  $("rp-no").addEventListener("change", function () { $("rp-error").textContent = ""; });
+  $("rp-memo").addEventListener("input", function () { $("rp-count").textContent = this.value.length + " / 500"; $("rp-error").textContent = ""; });
+  $("rp-file").addEventListener("change", function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    if (!/^image\//.test(f.type)) { $("rp-error").textContent = "이미지 파일만 올릴 수 있습니다."; this.value = ""; return; }
+    if (f.size > 5 * 1024 * 1024) { $("rp-error").textContent = "이미지는 5MB 이하만 올릴 수 있습니다."; this.value = ""; return; }
+    if (rpUrl) URL.revokeObjectURL(rpUrl);
+    rpUrl = URL.createObjectURL(f); rpFile = f;
+    $("rp-thumb").src = rpUrl;
+    $("rp-filename").textContent = f.name;
+    $("rp-preview").hidden = false;
+    $("rp-drop").hidden = true;
+    $("rp-error").textContent = "";
+  });
+  $("rp-remove").addEventListener("click", function () { rpClearFile(); $("rp-file").focus(); });
+  $("rp-again").addEventListener("click", function () { renderReport(true); $("rp-title").focus(); });
+  $("rp-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = +$("rp-floor").value, n = +$("rp-no").value, memo = $("rp-memo").value.trim();
+    var msg = "", bad = null;
+    if (!f || !n) { msg = "신고할 사물함의 층과 번호를 선택해 주세요."; bad = f ? "rp-no" : "rp-floor"; }
+    else if (memo.length < 10) { msg = "거래 정황을 10자 이상 적어 주세요."; bad = "rp-memo"; }
+    else if (!rpFile) { msg = "증거 사진을 올려 주세요."; bad = "rp-file"; }
+    else if (current.falseAt && diff(current.falseAt, TODAY) < 7) { msg = "최근 7일 안에 허위 신고로 기각된 이력이 있어 지금은 신고할 수 없습니다."; }
+    else if (REPORTS.some(function (r) { return r.floor === f && r.no === n && r.status === "접수"; })) { msg = "이미 접수된 신고가 있는 사물함입니다. 중복 신고는 할 수 없습니다."; bad = "rp-no"; }
+    if (msg) { $("rp-error").textContent = msg; if (bad) $(bad).focus(); return; }
+    var rec = { id: "RP-" + TODAY.replace(/-/g, "") + "-" + pad3(REPORTS.length + 1), floor: f, no: n, by: current.name, memo: memo, file: rpFile.name, status: "접수", at: TODAY + " " + hhmm(NOW_MIN), note: "" };
+    REPORTS.push(rec);
+    $("rp-form").hidden = true;
+    $("rp-success").hidden = false;
+    $("rp-ok-text").textContent = "접수번호 " + rec.id + " · " + lockerKo(rec) + ". 확인 결과는 아래 내 신고 내역에서 볼 수 있습니다. 접수만으로 배정이 확정되지는 않으며, 거래 사실이 확인되면 기존 이용권이 취소되고 해당 사물함이 제보자에게 배정됩니다(3개월 이용 가능).";
+    rpClearFile();
+    renderReportList();
+    $("rp-ok-title").focus();
+  });
+
+  /* demo: process the most recent pending report of the current user */
+  function resolveReport(ok) {
+    var r = null;
+    for (var i = REPORTS.length - 1; i >= 0; i--) if (REPORTS[i].by === current.name && REPORTS[i].status === "접수") { r = REPORTS[i]; break; }
+    if (!r) return "처리할 접수 상태의 신고가 없습니다.";
+    if (!ok) {
+      r.status = "기각"; r.note = "증거가 확인되지 않아 기각되었습니다. 7일 동안 신고할 수 없습니다. (시연용)";
+      current.falseAt = TODAY;
+      return r.id + " 신고가 기각되었습니다. (시연용)";
+    }
+    r.status = "확인됨";
+    var owner = null;
+    accounts.forEach(function (a) { if (a !== current && a.locker && a.locker.floor === r.floor && a.locker.no === r.no) owner = a; });
+    if (owner) { owner.locker = null; owner.plan = null; owner.extended = false; owner.start = null; owner.end = null; owner.acct = null; owner.short = "이용권 취소 (웃돈 거래)"; }
+    delete OCC[r.floor][r.no];
+    var text;
+    if (!applyState(current).active) {
+      if (current.locker) { var old = current.locker; delete OCC[old.floor][old.no]; PEND[old.floor][old.no] = nextRelease(); }
+      current.locker = { floor: r.floor, no: r.no }; current.plan = "3개월권"; current.extended = false;
+      current.start = TODAY; current.end = addMonthsStr(TODAY, 3); current.acct = null; current.short = "3개월권, 신고 배정"; current.wish = [];
+      OCC[r.floor][r.no] = true;
+      r.note = "기존 이용권이 취소되고 해당 사물함이 제보자에게 배정되었습니다(3개월 이용 가능).";
+      text = r.id + " 신고가 확인되어 " + lockerKo(r) + "이 배정되었습니다. (시연용)";
+    } else {
+      PEND[r.floor][r.no] = nextRelease();
+      r.note = "기존 이용권이 취소되었습니다. 제보자에게 이용 중인 사물함이 있어 해당 사물함은 반납 대기로 전환되었습니다. (임시 기준)";
+      text = r.id + " 신고가 확인되었습니다. 이용 중인 사물함이 있어 " + lockerKo(r) + "은 반납 대기로 전환되었습니다. (시연용)";
+    }
+    return text;
+  }
+
+  /* ---------- Wish list (찜하기) ---------- */
+  var WISH_MAX = 3; /* temporary limit */
+  var zNote = "", aNote = "";
+  function wl() { return current.wish || (current.wish = []); }
+  function wIndex(sel) { var w = wl(); for (var i = 0; i < w.length; i++) if (w[i].floor === sel.floor && w[i].no === sel.no) return i; return -1; }
+  function isWished(sel) { return !!current && wIndex(sel) >= 0; }
+  function lockerState(sel) {
+    if (current.locker && current.locker.floor === sel.floor && current.locker.no === sel.no) return "mine";
+    if (OCC[sel.floor][sel.no]) return "taken";
+    if (PEND[sel.floor][sel.no]) return "pend";
+    return "free";
+  }
+  function toggleWish(sel) {
+    var i = wIndex(sel);
+    if (i >= 0) { wl().splice(i, 1); updateWishBadge(); return "찜을 해제했습니다."; }
+    if (wl().length >= WISH_MAX) return "찜은 최대 " + WISH_MAX + "칸까지 담을 수 있습니다. 찜 목록에서 하나를 해제해 주세요.";
+    wl().push({ floor: sel.floor, no: sel.no });
+    updateWishBadge();
+    return "찜 목록에 담았습니다. (" + wl().length + "/" + WISH_MAX + ")";
+  }
+  function updateWishBadge() { $("wish-badge").textContent = current && wl().length ? String(wl().length) : ""; }
+  function actionNote(ss, st, sel) {
+    if (ss === "pend") return "방출 전이라 신청할 수 없습니다. 찜해 두면 " + PEND[sel.floor][sel.no] + " 10:00 이후 빠르게 신청할 수 있습니다.";
+    if (ss === "free" && !st.canApply) return st.active ? "이용 중인 사물함이 있어 지금은 신청할 수 없습니다. 찜해 둘 수는 있습니다." : "지금은 신청 시간이 아닙니다. 찜해 두면 신청이 열릴 때 빠르게 신청할 수 있습니다.";
+    return "";
+  }
+  $("zv-wish-btn").addEventListener("click", function () { if (!zSel) return; zNote = toggleWish(zSel); renderZonesView(); $("zv-wish-btn").focus(); });
+  $("ap-wish-btn").addEventListener("click", function () { if (!aSel) return; aNote = toggleWish(aSel); renderApply(); $("ap-wish-btn").focus(); });
+  $("wi-find").addEventListener("click", function () { go("zones"); });
+
+  function renderWish() {
+    var st = applyState(current), w = wl(), rel = nextRelease();
+    $("wi-sub").textContent = "찜 " + w.length + " / " + WISH_MAX + "칸 · " + (st.canApply ? "지금 신청할 수 있습니다." : "다음 신청·방출 " + rel + " 10:00 (" + waitText(rel) + ")");
+    var ul = $("wi-list");
+    ul.textContent = "";
+    $("wi-empty").hidden = w.length > 0;
+    w.forEach(function (it) {
+      var ss = lockerState(it);
+      var li = document.createElement("li"); li.className = "wish-item";
+      var main = document.createElement("div"); main.className = "wish-main";
+      var no = document.createElement("span"); no.className = "wish-no"; no.textContent = lockerKo(it) + " (" + lockerText(it) + ")";
+      var stEl = document.createElement("span"); stEl.className = "wish-status";
+      var pill = document.createElement("span"); pill.className = "wish-pill";
+      var why = "", can = false;
+      if (ss === "taken") { pill.className += " bad"; pill.textContent = "이미 신청됨"; why = "다른 학생이 먼저 신청했습니다. 목록에서 해제하고 다른 칸을 찾아보세요."; }
+      else if (ss === "pend") { pill.textContent = "방출 대기"; why = PEND[it.floor][it.no] + " 10:00에 열립니다 (" + waitText(PEND[it.floor][it.no]) + ")."; }
+      else if (st.canApply) { pill.className += " ok"; pill.textContent = "신청 가능"; why = "지금 바로 신청할 수 있습니다."; can = true; }
+      else { pill.textContent = "신청 대기"; why = st.active ? "이용 중인 사물함이 있어 지금은 신청할 수 없습니다." : "신청 시간이 아닙니다. 다음 신청 " + rel + " 10:00."; }
+      stEl.appendChild(pill); stEl.appendChild(document.createTextNode(why));
+      main.appendChild(no); main.appendChild(stEl);
+      var btns = document.createElement("div"); btns.className = "wish-btns";
+      var go1 = document.createElement("button"); go1.type = "button"; go1.className = "btn"; go1.textContent = "바로 신청 →"; go1.disabled = !can;
+      go1.addEventListener("click", function () { go("plan", { sel: { floor: it.floor, no: it.no } }); });
+      var rm = document.createElement("button"); rm.type = "button"; rm.className = "btn secondary"; rm.textContent = "찜 해제";
+      rm.addEventListener("click", function () { wl().splice(wIndex(it), 1); renderWish(); updateWishBadge(); $("wi-title").focus(); });
+      btns.appendChild(go1); btns.appendChild(rm);
+      li.appendChild(main); li.appendChild(btns);
+      ul.appendChild(li);
+    });
+  }
+
+  /* ---------- Rules / card news (S10) ---------- */
+  var CARDS = [
+    { src: "cards/c1.jpg", title: "표지 · 2026학년도 2학기 도서관 사물함 이용수칙 변경 안내", alt: "표지. 2026학년도 2학기 도서관 사물함 이용수칙 변경 안내",
+      text: ["2026학년도 2학기 도서관 사물함 이용수칙 변경 안내", "한국외국어대학교 서울캠퍼스"] },
+    { src: "cards/c2.jpg", title: "01. 이용수칙", alt: "01 이용수칙. 보증금, 이용 금액, 환불, 연장 안내",
+      text: ["보증금 안내: 기본 보증금 50,000원",
+             "이용 금액 안내: 3개월 5,000원 / 6개월 10,000원",
+             "환불 안내: 이용 기간 중 반납하면 이용 기간에 따라 이용 금액을 환불받을 수 있습니다.",
+             "이용 기간의 1/3 이내 이용: 이용 금액의 2/3 환불",
+             "이용 기간의 1/2 이내 이용: 이용 금액의 1/2 환불",
+             "연장 안내: 3개월 이용자는 이용 기간 종료 전 3개월 추가 연장 신청이 가능합니다.",
+             "6개월 이용자는 이용 기간 종료 후 연장이 불가능하며, 재신청을 통해 이용해야 합니다."] },
+    { src: "cards/c3.jpg", title: "02. 대여방법", alt: "02 대여방법. 신청 가능 날짜와 사물함 신청 순서",
+      text: ["신청 가능 날짜: 매월 1일 및 15일 오전 10시에 여석 신청 가능",
+             "'찜하기' 기능으로 신청기간 이전 원하는 사물함 저장 가능",
+             "사물함 신청: 페이지 로그인 → 원하는 사물함 번호 선택 → 신청 및 결제 진행 → 신청 완료 후 사물함 이용"] },
+    { src: "cards/c4.jpg", title: "03. 기존 사용자 안내", alt: "03 기존 사용자 안내. 보증금 없이 최초 1회에 한해 우선 신청권 부여",
+      text: ["보증금 없이 최초 1회에 한해 우선 신청권 부여",
+             "개편 제도 시행 당시 사물함을 이용 중인 학생에게는 최초 1회에 한해 도서관 사물함 우선 신청권 부여 예정",
+             "보증금 50,000원은 면제되며, 이용료는 3개월 5,000원 / 6개월 10,000원으로 동일하게 적용",
+             "우선 신청권은 자동 연장이 아닙니다. 추후 지속적인 사물함 이용을 원할 경우 개편 제도에 따라 신청해주세요. 3개월권은 만료 전에 한 번만 3개월 연장 가능하며, 6개월권은 만료 후 다시 신청해야 합니다."] },
+    { src: "cards/c5.jpg", title: "04. 주의사항", alt: "04 주의사항. 웃돈거래 금지와 신고제도",
+      text: ["웃돈거래 금지: 사물함 이용권을 정해진 이용료 외에 추가금을 더해 거래하는 것을 금지합니다.",
+             "신고 페이지를 운영하며, 웃돈 거래가 적발되면 보증금 회수 불가 및 사물함 즉시 이용 중단",
+             "신고제도: 웃돈 거래 확인 시 도서관 사물함 신고 페이지에 사물함 번호와 거래 정황을 남겨주세요. 거래 사실이 확인되면 기존 이용권을 취소하고 해당 사물함을 제보자에게 배정합니다. (3개월 이용 가능)",
+             "신고 접수만으로 배정이 확정되지는 않습니다."] },
+    { src: "cards/c6.jpg", title: "문의", alt: "문의. 도서관 관리팀 카카오톡 채널과 이메일 (내용 미기재)",
+      text: ["도서관 관리팀 카카오톡 채널: (아직 적혀 있지 않음)", "도서관 관리팀 이메일: (아직 적혀 있지 않음)"] }
+  ];
+  var cnIdx = 0;
+  var cnBuilt = false;
+  function renderRules() {
+    var c = CARDS[cnIdx];
+    var img = $("cn-img");
+    img.src = c.src; img.alt = c.alt;
+    $("cn-count").textContent = (cnIdx + 1) + " / " + CARDS.length;
+    $("cn-prev").disabled = cnIdx === 0;
+    $("cn-next").disabled = cnIdx === CARDS.length - 1;
+    $("cn-text-title").textContent = c.title;
+    var ul = $("cn-text-list");
+    ul.textContent = "";
+    c.text.forEach(function (t) { var li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+    var th = $("cn-thumbs");
+    if (!cnBuilt) {
+      CARDS.forEach(function (cd, i) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.setAttribute("aria-label", (i + 1) + "번째 카드: " + cd.title);
+        var im = document.createElement("img");
+        im.src = cd.src; im.alt = ""; im.loading = "lazy";
+        b.appendChild(im);
+        b.addEventListener("click", function () { cnIdx = i; renderRules(); });
+        th.appendChild(b);
+      });
+      cnBuilt = true;
+    }
+    Array.prototype.forEach.call(th.children, function (b, i) { b.setAttribute("aria-current", String(i === cnIdx)); });
+  }
+  $("cn-prev").addEventListener("click", function () { if (cnIdx > 0) { cnIdx--; renderRules(); } });
+  $("cn-next").addEventListener("click", function () { if (cnIdx < CARDS.length - 1) { cnIdx++; renderRules(); } });
+  $("cn-frame").addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft" && cnIdx > 0) { cnIdx--; renderRules(); e.preventDefault(); }
+    else if (e.key === "ArrowRight" && cnIdx < CARDS.length - 1) { cnIdx++; renderRules(); e.preventDefault(); }
+  });
+
+  /* ---------- Return page (S8 / S9) ---------- */
+  var rtCalc = null;
+  function calcReturn(a) {
+    var sg = segInfo(a), stage = refundStage(sg);
+    var fee = a.plan === "6개월권" ? PLANS[6].price : PLANS[3].price;
+    if (a.extended && sg.ext) fee = EXTEND_FEE;
+    var feeRefund = stage === 0 ? Math.floor(fee * 2 / 3) : stage === 1 ? Math.floor(fee / 2) : 0;
+    var pre = (a.extended && !sg.ext) ? EXTEND_FEE : 0; /* extension already paid but not started: temporary full refund */
+    return { sg: sg, stage: stage, fee: fee, feeRefund: feeRefund, pre: pre, total: feeRefund + pre + 50000 };
+  }
+  $("rt-back").addEventListener("click", function () { go("mine"); });
+  $("rt-cancel").addEventListener("click", function () { go("mine"); });
+  $("rt-to-mine").addEventListener("click", function () { go("mine"); });
+  $("rt-to-home").addEventListener("click", function () { go("home"); });
+  ["rt-bank", "rt-num", "rt-holder", "rt-agree"].forEach(function (id) {
+    $(id).addEventListener("input", function () { $("rt-error").textContent = ""; $(id).removeAttribute("aria-invalid"); });
+    $(id).addEventListener("change", function () { $("rt-error").textContent = ""; $(id).removeAttribute("aria-invalid"); });
+  });
+  $("rt-confirm").addEventListener("click", function () {
+    var a = current;
+    if (!applyState(a).active) return;
+    var bank = $("rt-bank").value, num = $("rt-num").value.trim(), holder = $("rt-holder").value.trim();
+    var digits = num.replace(/-/g, "");
+    var msg = "", bad = null;
+    if (!bank) { msg = "환불받을 은행을 선택해 주세요."; bad = "rt-bank"; }
+    else if (!/^[0-9-]+$/.test(num) || !/^[0-9]{8,16}$/.test(digits)) { msg = "계좌번호는 숫자 8~16자리로 입력해 주세요. (하이픈 가능)"; bad = "rt-num"; }
+    else if (holder.length < 2 || holder.length > 20) { msg = "예금주를 2~20자로 입력해 주세요."; bad = "rt-holder"; }
+    else if (!$("rt-agree").checked) { msg = "반납하려면 확인 항목에 체크해 주세요."; bad = "rt-agree"; }
+    if (bad) {
+      $("rt-error").textContent = msg;
+      if (bad !== "rt-agree") $(bad).setAttribute("aria-invalid", "true");
+      $(bad).focus();
+      return;
+    }
+    var c = calcReturn(a), l = a.locker;
+    $("rs-locker").textContent = lockerKo(l) + " (" + lockerText(l) + ")";
+    $("rs-fee").textContent = won(c.feeRefund + c.pre);
+    $("rs-total").textContent = won(c.total);
+    $("rs-acct").textContent = bank + " ****" + digits.slice(-4) + " (예금주 " + holder + ")";
+    var relDate = nextRelease();
+    $("rt-ok-text").textContent = "사물함이 비워졌고 이용 권리가 종료되었습니다. 반납한 사물함은 반납 대기로 있다가 " + relDate + " 10:00에 모든 이용자에게 한꺼번에 열립니다. 아래 계좌로 환불이 진행되는 것으로 안내합니다. 다시 이용하려면 신청 시간에 신규 이용자와 같은 조건으로 신청해야 합니다.";
+    delete OCC[l.floor][l.no];
+    PEND[l.floor][l.no] = relDate;
+    a.locker = null; a.plan = null; a.extended = false; a.start = null; a.end = null; a.acct = null;
+    a.short = "반납 완료";
+    $("rt-form").hidden = true;
+    $("rt-success").hidden = false;
+    $("rt-sub").textContent = "반납이 반영되었습니다.";
+    $("rt-ok-title").focus();
+  });
+
+  function renderReturn() {
+    var a = current, ok = applyState(a).active;
+    $("rt-success").hidden = true;
+    $("rt-form").hidden = false;
+    ["rt-bank", "rt-num", "rt-holder"].forEach(function (id) { $(id).value = ""; $(id).removeAttribute("aria-invalid"); });
+    $("rt-agree").checked = false;
+    $("rt-error").textContent = ok ? "" : "지금 반납할 수 있는 이용 중인 사물함이 없습니다.";
+    $("rt-confirm").disabled = !ok;
+    $("rt-rel").textContent = nextRelease() + " 10:00";
+    $("rt-sub").textContent = "이용기간이 끝나기 전에 사물함을 반납하고 환불받을 계좌를 입력합니다.";
+    if (!ok) return;
+    var c = calcReturn(a);
+    $("rt-locker").textContent = lockerKo(a.locker) + " (" + lockerText(a.locker) + ")";
+    $("rt-plan").textContent = a.extended ? "3개월권 + 연장 3개월" : a.plan;
+    $("rt-period").textContent = a.start + " ~ " + a.end;
+    $("rt-seg").textContent = c.sg.start + " ~ " + c.sg.end + " · 경과 " + c.sg.elapsed + "일 / 전체 " + c.sg.total + "일";
+    [0, 1, 2].forEach(function (i) { $("rt-l" + i).className = i === c.stage ? "now" : ""; });
+    $("rt-fee").textContent = won(c.fee);
+    $("rt-stage-label").textContent = c.stage === 0 ? "이용료 환불 (2/3)" : c.stage === 1 ? "이용료 환불 (1/2)" : "이용료 환불 (없음)";
+    $("rt-fee-refund").textContent = won(c.feeRefund);
+    $("rt-pre-row").hidden = !c.pre;
+    $("rt-pre").textContent = won(c.pre) + " 전액 환불 (임시)";
+    $("rt-total").textContent = won(c.total);
+  }
+
+  /* ---------- Extend page (S6) ---------- */
+  var EXTEND_FEE = 5000; /* temporary: same as the 3-month fee until the team decides */
+  $("ex-back").addEventListener("click", function () { go("mine"); });
+  $("ex-cancel").addEventListener("click", function () { go("mine"); });
+  $("ex-to-mine").addEventListener("click", function () { go("mine"); });
+  $("ex-to-home").addEventListener("click", function () { go("home"); });
+  $("ex-pay-btn").addEventListener("click", function () {
+    var bill = $("ex-bill"), open = bill.hidden;
+    bill.hidden = !open;
+    this.setAttribute("aria-expanded", String(open));
+    this.textContent = open ? "가상계좌 닫기" : "추가 납부 가상계좌 확인";
+  });
+  $("ex-copy").addEventListener("click", function () {
+    var out = $("ex-copied"), text = $("ex-acct").textContent;
+    try {
+      navigator.clipboard.writeText(text).then(
+        function () { out.textContent = "복사했습니다"; },
+        function () { out.textContent = "복사하지 못했습니다. 번호를 직접 선택해 복사해 주세요."; }
+      );
+    } catch (e) { out.textContent = "복사하지 못했습니다. 번호를 직접 선택해 복사해 주세요."; }
+  });
+  $("ex-agree").addEventListener("change", function () { $("ex-error").textContent = ""; });
+  $("ex-confirm").addEventListener("click", function () {
+    var a = current;
+    if (!a.locker || a.plan !== "3개월권" || a.extended || diff(TODAY, a.end) <= 0) return;
+    if (!$("ex-agree").checked) {
+      $("ex-error").textContent = "연장하려면 확인 항목에 체크해 주세요.";
+      $("ex-agree").focus();
+      return;
+    }
+    a.end = addMonthsStr(a.end, 3);
+    a.extended = true;
+    a.short = "연장 이용 중";
+    $("ex-form").hidden = true;
+    $("ex-success").hidden = false;
+    $("ex-sub").textContent = "연장이 반영되었습니다.";
+    $("ex-ok-text").textContent = "새 종료일은 " + a.end + "입니다. 연장 이용료 " + EXTEND_FEE.toLocaleString("ko-KR") + "원은 연장 전용 가상계좌(" + $("ex-acct").textContent + ")로 납부해 주세요. 연장은 1회만 가능해 더 이상 연장할 수 없고, 6개월 이용이 끝나면 신규 이용자와 같은 조건으로 다시 신청해야 합니다.";
+    $("ex-ok-title").focus();
+  });
+
+  function renderExtend() {
+    var a = current;
+    var left = a.locker ? diff(TODAY, a.end) : 0;
+    var c1 = !!a.locker && a.plan === "3개월권";
+    var c2 = c1 && !a.extended;
+    var c3 = !!a.locker && left > 0;
+    var rows = [
+      [c1, "3개월권을 이용 중입니다", "3개월권 이용 중이 아닙니다"],
+      [c2, "연장 이력이 없습니다 (연장은 1회까지)", "이미 연장했거나 연장할 수 없는 이용권입니다"],
+      [c3, "이용기간이 끝나기 전입니다 (남은 기간 " + left + "일)", "이용기간이 이미 끝났습니다"]
+    ];
+    var ul = $("ex-checks");
+    ul.textContent = "";
+    rows.forEach(function (r) {
+      var li = document.createElement("li");
+      li.className = r[0] ? "ok" : "no";
+      var ic = document.createElement("span");
+      ic.className = "check-ic";
+      ic.setAttribute("aria-hidden", "true");
+      ic.textContent = r[0] ? "✓" : "✕";
+      var tx = document.createElement("span");
+      tx.textContent = (r[0] ? "충족: " : "미충족: ") + (r[0] ? r[1] : r[2]);
+      li.appendChild(ic); li.appendChild(tx);
+      ul.appendChild(li);
+    });
+    var ok = c1 && c2 && c3;
+    $("ex-success").hidden = true;
+    $("ex-form").hidden = false;
+    $("ex-sub").textContent = ok
+      ? "3개월권은 1회 연장할 수 있고, 연장하면 최대 6개월까지 이용합니다."
+      : "지금은 연장할 수 없습니다. 위 조건을 확인해 주세요.";
+    $("ex-agree").checked = false;
+    $("ex-error").textContent = "";
+    $("ex-bill").hidden = true;
+    $("ex-pay-btn").setAttribute("aria-expanded", "false");
+    $("ex-pay-btn").textContent = "추가 납부 가상계좌 확인";
+    $("ex-copied").textContent = "";
+    if (a.locker) {
+      $("ex-acct").textContent = "799-" + pad(accounts.indexOf(a) + 1) + "-" + a.locker.floor + pad3(a.locker.no) + "-02";
+      $("ex-payer").textContent = a.name + " (" + lockerKo(a.locker) + ")";
+    }
+    $("ex-confirm").disabled = !ok;
+    $("ex-end-now").textContent = a.locker ? a.end : "";
+    $("ex-end-new").textContent = ok ? addMonthsStr(a.end, 3) : "";
+  }
+
+  /* ---------- My locker page ---------- */
+  function acctOf(a) { return a.acct || "799-" + pad(accounts.indexOf(a) + 1) + "-" + a.locker.floor + pad3(a.locker.no) + "-01"; }
+  /* current segment = the period being used now: the first period, or the extension once it has started */
+  function segInfo(a) {
+    var start = a.start, end = a.end, ext = false;
+    if (a.extended) {
+      var extStart = addMonthsStr(a.end, -3);
+      if (diff(TODAY, extStart) <= 0) { start = extStart; ext = true; }
+      else end = extStart;
+    }
+    var total = diff(start, end);
+    var elapsed = Math.min(Math.max(diff(start, TODAY), 0), total);
+    return { start: start, end: end, ext: ext, total: total, elapsed: elapsed };
+  }
+  /* refund stage by the rule table: <=1/3 -> 2/3, <=1/2 -> 1/2, else none (integer comparison) */
+  function refundStage(sg) {
+    if (sg.elapsed * 3 <= sg.total) return 0;
+    if (sg.elapsed * 2 <= sg.total) return 1;
+    return 2;
+  }
+  $("mn-extend").addEventListener("click", function () { go("extend"); });
+  $("mn-return").addEventListener("click", function () { go("return"); });
+
+  function renderMine() {
+    var a = current, st = applyState(a), next = nextRelease() + " 10:00";
+    var none = $("mn-none"), body = $("mn-body");
+    if (!a.locker) {
+      none.hidden = false; body.hidden = true;
+      $("mn-sub").textContent = "신청한 사물함이 있으면 이용 현황이 여기에 표시됩니다.";
+      var nb = $("mn-none-btn");
+      nb.disabled = false;
+      if (st.canApply) {
+        $("mn-none-text").textContent = "오늘은 신청일입니다. 신청 가능한 빈 사물함을 골라 신청할 수 있습니다.";
+        nb.textContent = "신청하러 가기 →";
+        nb.onclick = function () { go("apply"); };
+      } else {
+        $("mn-none-text").textContent = "신청은 매월 1일·15일 오전 10시에 열립니다. 다음 신청 시작은 " + next + "입니다.";
+        nb.textContent = "다음 신청일 " + next;
+        nb.disabled = true;
+        nb.onclick = null;
+      }
+      return;
+    }
+    none.hidden = true; body.hidden = false;
+    var left = diff(TODAY, a.end), active = left > 0;
+    $("mn-sub").textContent = "이용 현황을 확인하고 연장이나 중도 반납을 할 수 있습니다.";
+    $("mn-badge").textContent = left > 0 ? (a.extended ? "연장 이용 중" : "이용 중") : left === 0 ? "오늘 종료" : "이용 종료";
+    $("mn-no").textContent = lockerKo(a.locker);
+    $("mn-plan").textContent = a.extended ? "3개월권 + 연장 3개월" : a.plan;
+    $("mn-period").textContent = a.start + " ~ " + a.end;
+    $("mn-left").textContent = left > 0 ? left + "일" : left === 0 ? "오늘 종료" : "종료됨";
+    $("mn-acct").textContent = acctOf(a);
+
+    /* progress + refund stage (current segment: the extension period once extended) */
+    var sg = segInfo(a), stage = refundStage(sg), pct = Math.round((sg.elapsed / sg.total) * 1000) / 10;
+    $("mn-refund").hidden = !active;
+    $("rf-fill").style.width = pct + "%";
+    $("rf-bar").setAttribute("aria-valuenow", String(Math.round(pct)));
+    [0, 1, 2].forEach(function (i) { $("rf-l" + i).className = i === stage ? "now" : ""; });
+    $("rf-days").textContent = (a.extended ? (sg.ext ? "연장 구간 " : "최초 구간 ") + sg.start + " ~ " + sg.end + " 기준, " : "") + "경과 " + sg.elapsed + "일 / 전체 " + sg.total + "일";
+    $("rf-stage").textContent = (stage === 0 ? "지금 반납하면 이용료의 2/3를 돌려받습니다."
+      : stage === 1 ? "지금 반납하면 이용료의 1/2을 돌려받습니다."
+      : "이용기간의 1/2을 넘겨 이용료 환불은 없습니다.") + " 보증금 50,000원은 전액 돌려받습니다.";
+
+    /* reapply notice when the period is over */
+    var re = $("mn-reapply");
+    re.hidden = active;
+    if (!active) {
+      var six = a.extended || a.plan === "6개월권";
+      $("mn-re-text").textContent = six
+        ? "6개월 연속 이용이 끝났습니다. 기존 이용자도 신규 이용자와 같은 조건으로 다시 신청할 수 있습니다."
+        : "이용기간이 끝났습니다. 이어서 쓰려면 신규 이용자와 같은 조건으로 다시 신청해야 합니다.";
+      var rb = $("mn-re-btn");
+      rb.disabled = false;
+      if (st.canApply) { rb.textContent = "신청하러 가기 →"; rb.onclick = function () { go("apply"); }; }
+      else { rb.textContent = "다음 신청 " + next; rb.disabled = true; rb.onclick = null; }
+    }
+
+    /* actions */
+    var canExtend = active && a.plan === "3개월권" && !a.extended;
+    $("mn-actions-panel").hidden = !active;
+    $("mn-extend").hidden = !canExtend;
+    $("mn-return").hidden = !active;
+    $("mn-note").textContent = canExtend ? "연장은 1회까지 가능하며, 연장하면 최대 6개월까지 이용합니다."
+      : a.extended ? "연장은 1회까지 가능해 이미 사용했습니다. 6개월을 채우면 다시 신청해야 합니다."
+      : "6개월권은 연장할 수 없습니다. 종료 후 신규 이용자와 같은 조건으로 다시 신청해야 합니다.";
+  }
+
+  /* ---------- Plan page: step 2, choose 3 or 6 months + deposit notice ---------- */
+  var PLANS = { 3: { months: 3, price: 5000 }, 6: { months: 6, price: 10000 } };
+  var pSel = null, pPlan = null;
+  function won(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "원"; }
+  function addMonthsStr(str, m) {
+    var p = str.split("-"), y = +p[0], mo = +p[1] - 1 + m;
+    y += Math.floor(mo / 12); mo = ((mo % 12) + 12) % 12;
+    return y + "-" + pad(mo + 1) + "-" + p[2];
+  }
+  function lockerKo(l) { return l.floor + "층 " + pad3(l.no) + "번"; }
+
+  document.querySelectorAll("#pl-plans input").forEach(function (inp) {
+    inp.addEventListener("change", function () { pPlan = +inp.value; renderPlan(); });
+  });
+  $("pl-back").addEventListener("click", function () { go("apply", { floor: pSel.floor, sel: pSel }); });
+  $("sm-agree").addEventListener("change", function () { $("sm-error").textContent = ""; });
+  $("pl-action-btn").addEventListener("click", function () {
+    if (!pPlan) return;
+    if (!$("sm-agree").checked) {
+      $("sm-error").textContent = "신청하려면 이용규칙 동의에 체크해 주세요.";
+      $("sm-agree").focus();
+      return;
+    }
+    var m = PLANS[pPlan].months;
+    current.locker = { floor: pSel.floor, no: pSel.no };
+    current.wish = [];
+    current.plan = m + "개월권";
+    current.months = m;
+    current.price = PLANS[pPlan].price;
+    current.extended = false;
+    current.start = TODAY;
+    current.end = addMonthsStr(TODAY, m);
+    current.short = current.plan + ", 신청 완료";
+    current.acct = $("dp-acct").textContent;
+    OCC[pSel.floor][pSel.no] = true;
+    go("done");
+  });
+  $("dn-mine").addEventListener("click", function () { go("mine"); });
+  $("dn-home").addEventListener("click", function () { go("home"); });
+  $("dp-btn").addEventListener("click", function () {
+    var bill = $("dp-bill"), open = bill.hidden;
+    bill.hidden = !open;
+    this.setAttribute("aria-expanded", String(open));
+    this.textContent = open ? "가상계좌 닫기" : "가상계좌 확인";
+  });
+  $("dp-copy").addEventListener("click", function () {
+    var out = $("dp-copied"), text = $("dp-acct").textContent;
+    try {
+      navigator.clipboard.writeText(text).then(
+        function () { out.textContent = "복사했습니다"; },
+        function () { out.textContent = "복사하지 못했습니다. 번호를 직접 선택해 복사해 주세요."; }
+      );
+    } catch (e) { out.textContent = "복사하지 못했습니다. 번호를 직접 선택해 복사해 주세요."; }
+  });
+
+  function renderPlan() {
+    $("pl-sub").textContent = "사물함 " + lockerKo(pSel) + "을 이용할 기간을 고르세요. 이용 기간은 가상 오늘 날짜(" + TODAY + ")부터 계산합니다.";
+    $("pl-period-3").textContent = TODAY + " ~ " + addMonthsStr(TODAY, 3);
+    $("pl-period-6").textContent = TODAY + " ~ " + addMonthsStr(TODAY, 6);
+    document.querySelectorAll("#pl-plans .plan").forEach(function (el) {
+      var on = +el.getAttribute("data-plan") === pPlan;
+      el.classList.toggle("on", on);
+      el.querySelector("input").checked = on;
+    });
+    var idx = accounts.indexOf(current) + 1;
+    $("dp-acct").textContent = "799-" + pad(idx) + "-" + pSel.floor + pad3(pSel.no) + "-01";
+    $("dp-payer").textContent = current.name + " (" + lockerKo(pSel) + ")";
+    $("dp-copied").textContent = "";
+    var act = $("pl-action");
+    $("sm-empty").hidden = !!pPlan;
+    $("sm-list").hidden = !pPlan;
+    if (pPlan) {
+      var plan = PLANS[pPlan], total = plan.price + 50000;
+      $("sm-locker").textContent = lockerKo(pSel);
+      $("sm-plan").textContent = plan.months + "개월권";
+      $("sm-period").textContent = TODAY + " ~ " + addMonthsStr(TODAY, plan.months);
+      $("sm-fee").textContent = won(plan.price);
+      $("sm-total").textContent = won(total);
+      act.hidden = false;
+      $("pl-action-text").textContent = lockerKo(pSel) + " · " + plan.months + "개월권 · 납부 합계 " + won(total);
+    } else act.hidden = true;
+  }
+
+  function renderDone() {
+    var a = current;
+    $("dn-sub").textContent = "사물함이 배정되었습니다. 보증금은 아래 가상계좌로 납부하는 것으로 안내합니다.";
+    $("dn-no").textContent = lockerKo(a.locker);
+    $("dn-period").textContent = a.plan + " · " + a.start + " ~ " + a.end;
+    $("pay-fee").textContent = won(a.price);
+    $("pay-total").textContent = won(a.price + 50000);
+    $("pay-acct").textContent = a.acct;
+    $("dn-extend").textContent = a.months === 3
+      ? "3개월권은 이용 중 1회 연장할 수 있습니다(3개월 추가). 연장하면 최대 6개월까지 이용합니다."
+      : "6개월권은 연장할 수 없고, 종료 후 신규 이용자와 같은 조건으로 다시 신청합니다.";
+  }
+
+  /* ---------- Locker status page ---------- */
+  var zFloor = null, zSel = null;
+  var floorsEl = $("floors");
+  FLOORS.forEach(function (f) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "floor";
+    b.textContent = f + "F";
+    b.setAttribute("aria-pressed", "false");
+    b.setAttribute("data-floor", String(f));
+    b.addEventListener("click", function () { zFloor = f; zSel = null; renderZonesView(); $("zv-grid").scrollLeft = 0; });
+    floorsEl.appendChild(b);
+  });
+  $("zv-action-btn").addEventListener("click", function () { go("apply", { floor: zSel.floor, sel: zSel }); });
+  $("zv-grid").addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest(".cell") : null;
+    if (!t || !t.classList.contains("pick")) return;
+    zSel = { floor: zFloor, no: +t.getAttribute("data-no") };
+    renderZonesView();
+    var again = $("zv-grid").querySelector('.cell[data-no="' + zSel.no + '"]');
+    if (again) again.focus();
+  });
+
+  function renderZonesView() {
+    var st = applyState(current);
+    var my = current.locker;
+    $("zv-sub").textContent = st.canApply
+      ? "층을 고른 뒤 빈 사물함을 선택하세요. 선택하면 신청 화면으로 이동할 수 있습니다."
+      : st.applyDay
+        ? "이용 중인 사물함이 있어 지금은 새로 신청할 수 없습니다. 사물함 위치와 이용 현황은 볼 수 있습니다."
+        : "신청은 매월 1일·15일 오전 10시에 열립니다. 지금은 사물함 위치와 이용 현황을 확인하고, 마음에 드는 칸은 찜해 둘 수 있습니다.";
+    var myEl = $("zv-my");
+    if (my) { myEl.textContent = my.floor + "층 " + pad3(my.no) + "번"; myEl.className = "my-value has"; }
+    else { myEl.textContent = "신청 안 함"; myEl.className = "my-value"; }
+    document.querySelectorAll("#floors .floor").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(+b.getAttribute("data-floor") === zFloor));
+    });
+    var panel = $("zv-grid-panel"), empty = $("zv-empty"), act = $("zv-action");
+    if (zFloor === null) { panel.hidden = true; empty.hidden = false; act.hidden = true; return; }
+    empty.hidden = true; panel.hidden = false;
+    var used = OCC[zFloor], pend = PEND[zFloor], usedCount = Object.keys(used).length, pendN = Object.keys(pend).length;
+    $("zv-grid-title").textContent = zFloor + "층 사물함";
+    $("zv-grid-count").textContent = usedCount + " / " + PER + " 사용 중 · 반납 대기 " + pendN + " · 신청 가능 " + (PER - usedCount - pendN);
+    var grid = $("zv-grid");
+    var prevScroll = grid.scrollLeft;
+    grid.textContent = "";
+    for (var n = 1; n <= PER; n++) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = pad3(n);
+      b.setAttribute("data-no", String(n));
+      var mine = my && my.floor === zFloor && my.no === n;
+      if (mine) {
+        b.className = "cell mine";
+        b.setAttribute("aria-label", "내 사물함 " + zFloor + "층 " + n + "번");
+      } else if (used[n]) {
+        b.className = "cell used";
+        b.disabled = true;
+        b.setAttribute("aria-label", n + "번 사용 중");
+      } else if (pend[n]) {
+        b.className = "cell pend pick";
+        b.setAttribute("aria-label", n + "번 반납 대기, " + pend[n] + " 10:00에 열림");
+        if (isWished({ floor: zFloor, no: n })) { b.className += " wished"; b.setAttribute("aria-label", n + "번 반납 대기, " + pend[n] + " 10:00에 열림, 찜함"); }
+      } else {
+        b.className = "cell free pick";
+        b.setAttribute("aria-label", n + "번 빈 사물함");
+        if (isWished({ floor: zFloor, no: n })) { b.className += " wished"; b.setAttribute("aria-label", n + "번 빈 사물함, 찜함"); }
+        if (zSel && zSel.floor === zFloor && zSel.no === n) { b.className += " sel"; b.setAttribute("aria-pressed", "true"); }
+      }
+      grid.appendChild(b);
+    }
+    grid.scrollLeft = prevScroll;
+    if (zSel) {
+      act.hidden = false;
+      var ss = lockerState(zSel);
+      $("zv-action-text").textContent = "선택한 사물함 " + zSel.floor + "층 " + pad3(zSel.no) + "번" + (ss === "pend" ? " (반납 대기)" : "");
+      $("zv-wish-btn").textContent = isWished(zSel) ? "♥ 찜 해제" : "♡ 찜하기";
+      $("zv-wish-btn").setAttribute("aria-pressed", String(isWished(zSel)));
+      $("zv-action-btn").hidden = !(ss === "free" && st.canApply);
+      $("zv-note").textContent = zNote || actionNote(ss, st, zSel);
+      zNote = "";
+    } else act.hidden = true;
+  }
+  document.querySelectorAll("#menu button").forEach(function (b) {
+    b.addEventListener("click", function () { go(b.getAttribute("data-view")); });
+  });
+  document.querySelectorAll("[data-go]").forEach(function (b) {
+    b.addEventListener("click", function () { go(b.getAttribute("data-go")); });
+  });
+  $("ph-back").addEventListener("click", function () { go("home"); });
+
+  function renderHome(acc) {
+    var applyDay = isOpenDay();
+    var left = acc.locker ? diff(TODAY, acc.end) : null;
+    var active = !!acc.locker && left > 0;
+    var canApply = applyDay && !active;
+    var rel = nextRelease(), next = rel + " 10:00";
+
+    /* hero */
+    var chips = $("hero-chips");
+    chips.textContent = "";
+    function chip(t) { var s = document.createElement("span"); s.className = "hero-chip"; s.textContent = t; chips.appendChild(s); }
+    chip("가상 시각 " + TODAY + " " + hhmm(NOW_MIN));
+    chip(applyDay ? "지금은 신청·방출 시간입니다" : "다음 신청·방출 " + next + " (" + waitText(rel) + ")");
+    var btn = $("hero-btn");
+    btn.disabled = false;
+    btn.onclick = null;
+    if (canApply) {
+      $("hero-desc").textContent = "신청 가능한 사물함을 직접 골라 3개월 또는 6개월 이용권으로 신청하세요. 보증금 50,000원은 정상 반납하면 전액 돌려받습니다.";
+      $("hero-note").textContent = "";
+      btn.textContent = "신청하러 가기 →";
+      btn.onclick = function () { go("apply"); };
+    } else if (applyDay) {
+      $("hero-desc").textContent = "이용 중인 사물함이 있어 지금은 새로 신청할 수 없습니다. 이용기간이 끝나면 신규 이용자와 같은 조건으로 다시 신청할 수 있습니다.";
+      $("hero-note").textContent = "1인 1칸은 프로토타입의 임시 가정입니다.";
+      btn.textContent = "내 사물함 보기 →";
+      btn.onclick = function () { go("mine"); };
+    } else {
+      $("hero-desc").textContent = "신청은 매월 1일·15일 오전 10시에 선착순으로 열립니다. 반납된 사물함도 이때 함께 열립니다.";
+      $("hero-note").textContent = "";
+      btn.textContent = "다음 신청 " + next;
+      btn.disabled = true;
+    }
+    var pn = pendTotal(rel);
+    var noteEl = $("hero-note");
+    var pendNote = pn ? "반납 대기 " + pn + "칸이 " + next + "에 한꺼번에 열립니다." : "";
+    noteEl.textContent = (noteEl.textContent && pendNote ? noteEl.textContent + " " : noteEl.textContent) + pendNote;
+
+    /* status + locker */
+    var bar = $("st-bar");
+    if (!acc.locker) {
+      $("st-main").textContent = "이용 없음";
+      $("st-side").textContent = "";
+      bar.hidden = true;
+      $("st-text").textContent = "이용 중인 사물함이 없습니다.";
+      $("st-sub").textContent = "신청일에 사물함을 골라 신청할 수 있습니다.";
+      $("lk-no").textContent = "미배정";
+      $("lk-period").textContent = "";
+      $("lk-note").textContent = "신청이 끝나면 사물함 번호와 이용기간이 여기에 표시됩니다.";
+      return renderZones();
+    }
+    var total = diff(acc.start, acc.end);
+    var elapsed = Math.min(Math.max(diff(acc.start, TODAY), 0), total);
+    var pct = Math.round((elapsed / total) * 100);
+    bar.hidden = false;
+    bar.setAttribute("aria-valuenow", String(pct));
+    $("st-fill").style.width = pct + "%";
+    $("st-main").textContent = left > 0 ? "이용 중" : "오늘 종료";
+    $("st-side").textContent = acc.extended ? "3개월권 + 연장 3개월" : acc.plan;
+    $("st-text").textContent = "경과 " + elapsed + "일 / 전체 " + total + "일";
+    if (acc.extended) $("st-sub").textContent = "6개월 연속 이용에 도달했습니다. 신규 이용자와 같은 조건으로 다시 신청할 수 있습니다.";
+    else if (acc.plan === "3개월권") $("st-sub").textContent = "연장은 1회까지 가능합니다. 연장하면 최대 6개월까지 이용합니다.";
+    else $("st-sub").textContent = "6개월권은 연장할 수 없고, 종료 후 다시 신청합니다.";
+    $("lk-no").textContent = lockerText(acc.locker);
+    $("lk-period").textContent = acc.start + " ~ " + acc.end;
+    $("lk-note").textContent = left > 0 ? "남은 기간 " + left + "일" : "오늘 이용이 끝납니다. 이어서 쓰려면 다시 신청해야 합니다.";
+    renderZones();
+  }
+
+  /* ---------- Demo control (clock) ---------- */
+  /* after a release, other students return lockers again so the next waiting group is visible */
+  function seedReturns(perFloor) {
+    var rel = nextRelease(), added = 0;
+    FLOORS.forEach(function (f) {
+      var mine = {};
+      accounts.forEach(function (a) { if (a.locker && a.locker.floor === f) mine[a.locker.no] = true; });
+      var n = 0;
+      Object.keys(OCC[f]).forEach(function (k) {
+        if (n < perFloor && !mine[k]) { PEND[f][k] = rel; delete OCC[f][k]; n++; added++; }
+      });
+    });
+    return { rel: rel, added: added };
+  }
+  $("cd-msg").addEventListener("click", function () { this.textContent = ""; });
+  var cdTimer = null;
+  function demoRefresh(msg, btn) {
+    settle();
+    $("cd").open = false;
+    var v = ["home", "zones", "apply", "mine", "wish", "report"].indexOf(curView) >= 0 ? curView : "home";
+    go(v);
+    $("cd-msg").textContent = msg;
+    clearTimeout(cdTimer);
+    cdTimer = setTimeout(function () { $("cd-msg").textContent = ""; }, 9000);
+    if (btn) btn.focus();
+  }
+  $("cd-pre").addEventListener("click", function () {
+    TODAY = nextRelease(); NOW_MIN = RELEASE_MIN - 1;
+    demoRefresh("가상 시각 " + TODAY + " 09:59입니다. 1분 뒤 10:00에 반납 대기 " + pendTotal(TODAY) + "칸이 열립니다.", this);
+  });
+  $("cd-rel").addEventListener("click", function () {
+    var before = pendTotal();
+    TODAY = nextRelease(); NOW_MIN = RELEASE_MIN;
+    settle();
+    var opened = before - pendTotal();
+    var nx = seedReturns(3);
+    var lostMsg = "";
+    if (current) {
+      var rl = wl().filter(function (w) { return lockerState(w) === "free"; });
+      if (rl.length >= 2) {
+        OCC[rl[0].floor][rl[0].no] = true;
+        lostMsg = " 찜한 " + lockerKo(rl[0]) + "은 다른 학생이 먼저 신청했습니다. (시연용 가상 상황)";
+      }
+    }
+    demoRefresh("가상 시각 " + TODAY + " 10:00입니다. 반납 대기 " + opened + "칸이 한꺼번에 열려 신청할 수 있습니다. 그 사이 다른 이용자 " + nx.added + "칸이 새로 반납되어 " + nx.rel + " 10:00까지 반납 대기에 들어갔습니다. (시연용 가상 데이터)" + lostMsg, this);
+  });
+  $("cd-rp-ok").addEventListener("click", function () { demoRefresh(resolveReport(true), this); });
+  $("cd-rp-no").addEventListener("click", function () { demoRefresh(resolveReport(false), this); });
+  $("cd-reset").addEventListener("click", function () {
+    TODAY = "2026-12-01"; NOW_MIN = 600;
+    accounts.forEach(function (a, i) {
+      var base = SNAP.acc[i];
+      Object.keys(a).forEach(function (k) { delete a[k]; });
+      if (base) Object.keys(base).forEach(function (k) { a[k] = JSON.parse(JSON.stringify(base[k])); });
+    });
+    /* accounts that signed up after the page loaded go back to "no locker" */
+    accounts.forEach(function (a, i) {
+      if (!SNAP.acc[i]) { a.short = "이용 없음"; a.locker = null; }
+    });
+    FLOORS.forEach(function (f) {
+      OCC[f] = JSON.parse(JSON.stringify(SNAP.occ[f]));
+      PEND[f] = JSON.parse(JSON.stringify(SNAP.pend[f]));
+    });
+    REPORTS.length = 0;
+    rpClearFile();
+    $("user-name").textContent = current.name;
+    demoRefresh("처음 상태(가상 시각 " + TODAY + " 10:00)로 되돌렸습니다. 사물함, 찜 목록, 신고, 내 이용권이 모두 시작 상태입니다.", this);
+  });
+  $("cd-day").addEventListener("click", function () {
+    TODAY = addDays(TODAY, 1);
+    demoRefresh("가상 시각 " + TODAY + " " + hhmm(NOW_MIN) + "입니다.", this);
+  });
+
+  function renderZones() {
+    var ul = $("zones");
+    ul.textContent = "";
+    var free = 0, total = 0;
+    FLOORS.forEach(function (f) {
+      var usedN = Object.keys(OCC[f]).length, pendN = pendCount(f), freeN = PER - usedN - pendN;
+      free += freeN; total += PER;
+      var li = document.createElement("li");
+      li.className = "zone";
+      var letter = document.createElement("div");
+      letter.className = "zone-letter";
+      letter.textContent = f + "F";
+      var mid = document.createElement("div");
+      var name = document.createElement("div");
+      name.className = "zone-name";
+      name.textContent = f + "층";
+      var sub = document.createElement("div");
+      sub.className = "zone-sub";
+      sub.textContent = "전체 " + PER + "칸 중 이용 중 " + usedN + "칸" + (pendN ? " · 반납 대기 " + pendN + "칸" : "");
+      var bar = document.createElement("div");
+      bar.className = "bar";
+      bar.setAttribute("role", "img");
+      bar.setAttribute("aria-label", f + "층 이용 중 " + usedN + "칸, 반납 대기 " + pendN + "칸, 신청 가능 " + freeN + "칸");
+      var fill = document.createElement("i");
+      fill.style.width = Math.round((usedN / PER) * 100) + "%";
+      bar.appendChild(fill);
+      mid.appendChild(name); mid.appendChild(sub); mid.appendChild(bar);
+      var pill = document.createElement("span");
+      pill.className = "pill";
+      pill.textContent = "신청 가능 " + freeN + "칸";
+      li.appendChild(letter); li.appendChild(mid); li.appendChild(pill);
+      ul.appendChild(li);
+    });
+    var sum = $("zones-sum");
+    sum.textContent = "";
+    sum.appendChild(document.createTextNode("전체 " + total + "칸 중 신청 가능 "));
+    var st = document.createElement("strong");
+    st.textContent = free + "칸";
+    sum.appendChild(st);
+  }
+})();
+</script>
+</body>
+</html>
